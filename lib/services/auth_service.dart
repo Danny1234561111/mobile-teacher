@@ -1,8 +1,9 @@
+// services/auth_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_response.dart';
-import '../models/register_dto.dart';
+import '../models/login_dto.dart';
 import '../models/user.dart';
 
 class AuthService {
@@ -10,9 +11,8 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  static const String BASE_URL = 'https://python-project-mu-five.vercel.app';
+  static const String BASE_URL = 'http://158.160.67.3:8000';
   static const String _tokenKey = 'auth_token';
-  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
   static const String _emailKey = 'saved_email';
   static const String _passwordKey = 'saved_password';
@@ -64,19 +64,32 @@ class AuthService {
     await prefs.remove(_isAutoLoginEnabledKey);
   }
 
-  Future<Map<String, String>> _getHeaders({bool withAuth = false}) async {
-    final headers = {
+  // Получение заголовков с Bearer токеном (для /api/students/*)
+  Future<Map<String, String>> getAuthHeaders() async {
+    final token = await getToken();
+    final headers = <String, String>{
       'Content-Type': 'application/json',
     };
-
-    if (withAuth) {
-      final token = await getToken();
-      if (token != null) {
-        headers['Authorization'] = 'Bearer $token';
-      }
+    
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+      print('🔑 Добавлен Bearer токен: ${token.substring(0, min(20, token.length))}...');
+    } else {
+      print('⚠️ Токен отсутствует');
     }
-
+    
     return headers;
+  }
+
+  // Получение URL с токеном в query параметре (для /api/auth/me)
+  Future<Uri> getUrlWithToken(String path) async {
+    final token = await getToken();
+    final uri = Uri.parse('$BASE_URL$path');
+    
+    if (token != null && token.isNotEmpty) {
+      return uri.replace(queryParameters: {'token': token});
+    }
+    return uri;
   }
 
   Future<String?> getToken() async {
@@ -84,35 +97,22 @@ class AuthService {
     return prefs.getString(_tokenKey);
   }
 
-  Future<String?> getRefreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_refreshTokenKey);
-  }
-
   Future<void> saveAuthData(AuthResponse authResponse) async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Сохраняем токен доступа
-    if (authResponse.token.isNotEmpty) {
-      await prefs.setString(_tokenKey, authResponse.token);
+    if (authResponse.accessToken.isNotEmpty) {
+      await prefs.setString(_tokenKey, authResponse.accessToken);
+      print('✅ Токен сохранен: ${authResponse.accessToken.substring(0, min(20, authResponse.accessToken.length))}...');
     }
     
-    // Сохраняем refresh token если он есть
-    if (authResponse.refreshToken != null && authResponse.refreshToken!.isNotEmpty) {
-      await prefs.setString(_refreshTokenKey, authResponse.refreshToken!);
-    }
-    
-    // Сохраняем данные пользователя
-    if (authResponse.user != null) {
-      await prefs.setString(_userKey, json.encode(authResponse.user.toJson()));
-    }
+    await prefs.setString(_userKey, json.encode(authResponse.user.toJson()));
   }
 
   Future<void> clearAuthData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
-    await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userKey);
+    print('🗑️ Данные авторизации очищены');
   }
 
   Future<User?> getCurrentUser() async {
@@ -134,12 +134,11 @@ class AuthService {
     try {
       final url = Uri.parse('$BASE_URL/api/auth/login');
       
-      final requestBody = json.encode({
-        'email': email,
-        'password': password,
-      });
+      final loginDto = LoginDto(email: email, password: password);
+      final requestBody = json.encode(loginDto.toJson());
 
       print('🔄 Отправка запроса на логин: $url');
+      print('📦 Тело запроса: $requestBody');
 
       final response = await http.post(
         url,
@@ -153,23 +152,24 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         
-        // Проверяем структуру ответа
-        print('📦 Структура ответа:');
-        data.forEach((key, value) => print('  $key: $value'));
-        
-        // Создаем AuthResponse из данных
         final authResponse = AuthResponse.fromJson(data);
         
-        // Сохраняем данные
         await saveAuthData(authResponse);
-        // Сохраняем учетные данные для автовхода
         await saveCredentials(email, password);
         
-        print('✅ Успешный вход: ${authResponse.user?.email ?? "unknown"}');
+        print('✅ Успешный вход: ${authResponse.user.email}');
+        print('🔑 Получен токен: ${authResponse.accessToken.substring(0, min(20, authResponse.accessToken.length))}...');
+        
         return authResponse;
       } else if (response.statusCode == 401) {
         final error = json.decode(response.body);
         final errorMessage = error['detail'] ?? 'Неверный email или пароль';
+        throw Exception(errorMessage);
+      } else if (response.statusCode == 422) {
+        final error = json.decode(response.body);
+        final errorMessage = error['detail']?.isNotEmpty == true 
+            ? error['detail'][0]['msg'] ?? 'Ошибка валидации'
+            : 'Ошибка валидации данных';
         throw Exception(errorMessage);
       } else {
         throw Exception('Ошибка сервера: ${response.statusCode}');
@@ -186,105 +186,6 @@ class AuthService {
     }
   }
 
-  Future<AuthResponse> register(RegisterDto registerDto) async {
-    try {
-      final url = Uri.parse('$BASE_URL/api/auth/register');
-
-      print('🔄 Отправка запроса на регистрацию: $url');
-
-      // Используем toJson() из RegisterDto
-      final requestBody = json.encode(registerDto.toJson());
-
-      print('📦 Тело запроса: $requestBody');
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: requestBody,
-      ).timeout(const Duration(seconds: 30));
-
-      print('📊 Статус ответа: ${response.statusCode}');
-      print('📝 Тело ответа: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        
-        // Проверяем структуру ответа
-        print('📦 Структура ответа:');
-        data.forEach((key, value) => print('  $key: $value'));
-        
-        final authResponse = AuthResponse.fromJson(data);
-        
-        // Сохраняем данные
-        await saveAuthData(authResponse);
-        // Сохраняем учетные данные для автовхода
-        await saveCredentials(registerDto.email, registerDto.password);
-        
-        print('✅ Успешная регистрация: ${authResponse.user?.email ?? "unknown"}');
-        return authResponse;
-      } else if (response.statusCode == 400) {
-        final error = json.decode(response.body);
-        final errorMessage = error['detail'] ?? error['message'] ?? 'Ошибка регистрации';
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Ошибка сервера: ${response.statusCode}');
-      }
-    } on http.ClientException catch (e) {
-      print('❌ Ошибка сети: $e');
-      throw Exception('Не удалось подключиться к серверу. Проверьте интернет-соединение.');
-    } on FormatException catch (e) {
-      print('❌ Ошибка формата ответа: $e');
-      throw Exception('Сервер вернул неверный формат данных.');
-    } catch (e) {
-      print('❌ Ошибка регистрации: $e');
-      throw Exception('Произошла ошибка при регистрации: $e');
-    }
-  }
-
-  // Регистрация преподавателя через заявку
-  Future<Map<String, dynamic>> registerTeacherRequest(RegisterDto registerDto) async {
-    try {
-      final url = Uri.parse('$BASE_URL/api/auth/register/teacher-request');
-
-      print('🔄 Отправка заявки на регистрацию преподавателя: $url');
-
-      final requestBody = json.encode(registerDto.toJson());
-
-      print('📦 Тело запроса: $requestBody');
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: requestBody,
-      ).timeout(const Duration(seconds: 30));
-
-      print('📊 Статус ответа: ${response.statusCode}');
-      print('📝 Тело ответа: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = json.decode(response.body);
-        
-        print('✅ Заявка успешно отправлена');
-        return data;
-      } else if (response.statusCode == 400) {
-        final error = json.decode(response.body);
-        final errorMessage = error['detail'] ?? error['message'] ?? 'Ошибка отправки заявки';
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Ошибка сервера: ${response.statusCode}');
-      }
-    } on http.ClientException catch (e) {
-      print('❌ Ошибка сети: $e');
-      throw Exception('Не удалось подключиться к серверу. Проверьте интернет-соединение.');
-    } on FormatException catch (e) {
-      print('❌ Ошибка формата ответа: $e');
-      throw Exception('Сервер вернул неверный формат данных.');
-    } catch (e) {
-      print('❌ Ошибка отправки заявки: $e');
-      throw Exception('Произошла ошибка при отправке заявки: $e');
-    }
-  }
-
   Future<AuthResponse> autoLogin() async {
     try {
       final credentials = await getSavedCredentials();
@@ -294,7 +195,6 @@ class AuthService {
 
       print('🔄 Попытка автовхода для: ${credentials['email']}');
       
-      // Пробуем войти с сохраненными учетными данными
       return await login(credentials['email']!, credentials['password']!);
     } catch (e) {
       print('❌ Ошибка автовхода: $e');
@@ -302,94 +202,75 @@ class AuthService {
     }
   }
 
+  // ИСПРАВЛЕНО: токен в query параметре для /api/auth/me
   Future<User> getProfile() async {
-  try {
-    final token = await getToken();
-    
-    if (token == null) {
-      throw Exception('Не авторизован');
-    }
+    try {
+      final token = await getToken();
+      
+      if (token == null) {
+        throw Exception('Не авторизован');
+      }
 
-    final url = Uri.parse('$BASE_URL/api/auth/me');
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+      // ВАЖНО: токен в query параметре, не в заголовке!
+      final url = Uri.parse('$BASE_URL/api/auth/me').replace(
+        queryParameters: {'token': token}
+      );
 
-    print('🔄 Запрос профиля: $url');
+      print('🔄 Запрос профиля: $url');
 
-    final response = await http.get(
-      url,
-      headers: headers,
-    ).timeout(const Duration(seconds: 10));
+      final response = await http.get(
+        url,
+        headers: {'Content-Type': 'application/json'}, // Без Authorization
+      ).timeout(const Duration(seconds: 10));
 
-    print('📊 Статус профиля: ${response.statusCode}');
-    print('📝 Тело профиля: ${response.body}');
+      print('📊 Статус профиля: ${response.statusCode}');
+      print('📝 Тело профиля: ${response.body}');
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['user'] != null) {
-        final user = User.fromJson(data['user']);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final user = User.fromJson(data);
         
-        // Обновляем данные пользователя в хранилище
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_userKey, json.encode(user.toJson()));
         
         return user;
+      } else if (response.statusCode == 401) {
+        await clearAuthData();
+        throw Exception('Токен невалиден');
+      } else if (response.statusCode == 422) {
+        // Сервер ожидает токен в query параметре
+        throw Exception('Ошибка формата запроса. Токен должен быть в query параметре');
+      } else {
+        throw Exception('Ошибка загрузки профиля: ${response.statusCode}');
       }
-      throw Exception('Данные пользователя не найдены в ответе');
-    } else if (response.statusCode == 401) {
-      // Токен невалиден
-      throw Exception('Токен невалиден. Код: 401');
-    } else {
-      throw Exception('Ошибка загрузки профиля: ${response.statusCode}');
-    }
-  } catch (e) {
-    print('❌ Ошибка загрузки профиля: $e');
-    throw Exception('Не удалось загрузить профиль: $e');
-  }
-}
-  Future<bool> _tryRefreshToken() async {
-    try {
-      // Сначала пробуем обновить токен через refresh token
-      final newToken = await refreshToken();
-      if (newToken != null) {
-        return true;
-      }
-      
-      // Если refresh token не сработал, пробуем авто-логин
-      await autoLogin();
-      return true;
     } catch (e) {
-      print('❌ Не удалось обновить токен: $e');
-      return false;
+      print('❌ Ошибка загрузки профиля: $e');
+      throw Exception('Не удалось загрузить профиль: $e');
     }
   }
 
+  // ИСПРАВЛЕНО: для /api/auth/logout тоже используем query параметр
   Future<void> logout() async {
     try {
       final token = await getToken();
+      
       if (token != null) {
-        final url = Uri.parse('$BASE_URL/api/auth/logout');
-        final headers = {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        };
+        final url = Uri.parse('$BASE_URL/api/auth/logout').replace(
+          queryParameters: {'token': token}
+        );
+        
+        print('🔄 Выход из системы: $url');
         
         await http.post(
           url,
-          headers: headers,
+          headers: {'Content-Type': 'application/json'},
         ).timeout(const Duration(seconds: 5));
       }
     } catch (e) {
-      print('⚠️  Ошибка при выходе на сервере: $e');
-      // Даже при ошибке продолжаем очистку локальных данных
+      print('⚠️ Ошибка при выходе на сервере: $e');
     }
     
-    // Отключаем авто-логин
     await disableAutoLogin();
-    
-    // Очищаем локальные данные
     await clearAuthData();
     await clearCredentials();
     
@@ -399,25 +280,16 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     if (token == null) {
-      print('⚠️  Токен не найден');
+      print('⚠️ Токен не найден');
       return false;
     }
     
     try {
-      // Пробуем получить профиль - это проверит валидность токена
       await getProfile();
       return true;
     } catch (e) {
       print('❌ Токен невалиден: $e');
-      
-      // Пробуем обновить токен через авто-логин
-      try {
-        await _tryRefreshToken();
-        return true;
-      } catch (refreshError) {
-        print('❌ Не удалось обновить токен: $refreshError');
-        return false;
-      }
+      return false;
     }
   }
 
@@ -433,7 +305,6 @@ class AuthService {
     }
   }
 
-  // Проверка валидности токена
   Future<bool> validateToken() async {
     try {
       await getProfile();
@@ -444,125 +315,32 @@ class AuthService {
     }
   }
 
-  // Обновление токена через refresh token
-  Future<String?> refreshToken() async {
+  Future<bool> checkAndRestoreAuth() async {
     try {
-      final refreshToken = await getRefreshToken();
-      if (refreshToken == null || refreshToken.isEmpty) {
-        print('⚠️  Refresh token не найден');
-        return null;
-      }
+      print('🔄 Проверка и восстановление авторизации...');
       
-      final url = Uri.parse('$BASE_URL/api/auth/refresh');
-      
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'refresh_token': refreshToken}),
-      ).timeout(const Duration(seconds: 10));
-      
-      print('🔄 Обновление токена: ${response.statusCode}');
-      print('📝 Ответ: ${response.body}');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final newToken = data['token'] as String?;
-        final newRefreshToken = data['refresh_token'] as String?;
-        
-        if (newToken != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_tokenKey, newToken);
-          
-          if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-            await prefs.setString(_refreshTokenKey, newRefreshToken);
-          }
-          
-          print('✅ Токен обновлен через refresh token');
-          return newToken;
+      final token = await getToken();
+      if (token != null) {
+        print('🔑 Найден токен, проверяем валидность...');
+        try {
+          await getProfile();
+          print('✅ Токен валиден');
+          return true;
+        } catch (e) {
+          print('❌ Токен невалиден: $e');
         }
       }
-      return null;
-    } catch (e) {
-      print('❌ Ошибка обновления токена через refresh token: $e');
-      return null;
-    }
-  }
-
-  // Проверка статуса регистрации
-  Future<Map<String, dynamic>> checkRegistrationStatus(String email) async {
-    try {
-      final url = Uri.parse('$BASE_URL/api/auth/check-status/${Uri.encodeComponent(email)}');
       
-      print('🔄 Проверка статуса регистрации для: $email');
-      
-      final response = await http.get(
-        url,
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
-      
-      print('📊 Статус ответа: ${response.statusCode}');
-      print('📝 Тело ответа: ${response.body}');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data;
-      } else if (response.statusCode == 400) {
-        final error = json.decode(response.body);
-        final errorMessage = error['detail'] ?? 'Ошибка проверки статуса';
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Ошибка сервера: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ Ошибка проверки статуса: $e');
-      throw Exception('Не удалось проверить статус регистрации: $e');
-    }
-  }
-
-  // Вспомогательные методы для отладки
-  Future<void> printDebugInfo() async {
-    print('🔍 Информация о AuthService:');
-    print('  • Base URL: $BASE_URL');
-    print('  • Токен: ${await getToken() ?? "нет"}');
-    print('  • Refresh токен: ${await getRefreshToken() ?? "нет"}');
-    print('  • Сохраненные данные: ${await getSavedCredentials() != null ? "да" : "нет"}');
-    
-    final user = await getCurrentUser();
-    if (user != null) {
-      print('  • Пользователь: ${user.email} (${user.fullName})');
-      print('  • Роль: ${user.role}');
-    } else {
-      print('  • Пользователь: не загружен');
-    }
-  }
-  Future<bool> checkAndRestoreAuth() async {
-  try {
-    print('🔄 Проверка и восстановление авторизации...');
-    
-    // 1. Проверяем есть ли токен и он валиден
-    final token = await getToken();
-    if (token != null) {
-      try {
-        await getProfile();
-        print('✅ Токен валиден');
-        return true;
-      } catch (e) {
-        print('❌ Токен невалиден: $e');
-        // Токен невалиден, пробуем авто-логин
-      }
-    }
-    
-    // 2. Пробуем авто-логин если есть сохраненные данные
       final credentials = await getSavedCredentials();
       if (credentials == null) {
-        print('⚠️  Нет сохраненных данных для авто-логина');
+        print('⚠️ Нет сохраненных данных для авто-логина');
         return false;
       }
       
       print('🔄 Пробуем авто-логин с сохраненными данными...');
       try {
-        final response = await autoLogin();
-        print('✅ Авто-логин успешен для: ${response.user?.email}');
+        await autoLogin();
+        print('✅ Авто-логин успешен');
         return true;
       } catch (e) {
         print('❌ Авто-логин не удался: $e');
@@ -573,11 +351,11 @@ class AuthService {
       return false;
     }
   }
-    Future<bool> tryAutoLoginIfPossible() async {
+
+  Future<bool> tryAutoLoginIfPossible() async {
     try {
       print('🔄 Проверяем возможность авто-логина...');
       
-      // 1. Проверяем, есть ли сохраненные данные
       final credentials = await getSavedCredentials();
       if (credentials == null) {
         print('❌ Нет сохраненных данных для авто-логина');
@@ -586,19 +364,17 @@ class AuthService {
       
       print('📧 Есть сохраненные данные для: ${credentials['email']}');
       
-      // 2. Проверяем соединение
       final hasConnection = await testConnection();
       if (!hasConnection) {
         print('❌ Нет соединения с сервером');
         return false;
       }
       
-      // 3. Пробуем сделать авто-логин
       try {
         print('🔄 Пробуем авто-логин...');
         final response = await login(credentials['email']!, credentials['password']!);
         
-        if (response.token.isNotEmpty) {
+        if (response.accessToken.isNotEmpty) {
           print('✅ Авто-логин успешен!');
           return true;
         }
@@ -613,4 +389,28 @@ class AuthService {
       return false;
     }
   }
+
+  Future<void> printDebugInfo() async {
+    print('🔍 Информация о AuthService:');
+    print('  • Base URL: $BASE_URL');
+    
+    final token = await getToken();
+    if (token != null) {
+      print('  • Токен: ${token.substring(0, min(20, token.length))}... (длина: ${token.length})');
+    } else {
+      print('  • Токен: нет');
+    }
+    
+    final user = await getCurrentUser();
+    if (user != null) {
+      print('  • Пользователь: ${user.email} (${user.fullName})');
+      print('  • Роль: ${user.role}');
+      print('  • ID: ${user.id}');
+    } else {
+      print('  • Пользователь: не загружен');
+    }
+  }
 }
+
+// Вспомогательная функция для безопасного обрезания строк
+int min(int a, int b) => a < b ? a : b;

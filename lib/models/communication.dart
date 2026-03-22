@@ -1,65 +1,45 @@
-import 'dart:convert';
-
+// models/communication.dart
 class Communication {
-  final String id;
-  final String studentId;
+  final int id;
+  final int studentId;
+  final String? studentName;
   final String communicationType;
   final String status;
   final DateTime dateTime;
   final int? durationMinutes;
-  final String topic;
   final String notes;
-  final String? nextAction;
-  final DateTime? nextActionDate;
-  final List<String> attachmentUrls;
-  final bool isImportant;
-  final String createdBy;
+  final String? createdByName;
   final DateTime createdAt;
-  final DateTime updatedAt;
-  final String? studentName;
-  final String? studentPhone;
 
   Communication({
     required this.id,
     required this.studentId,
+    this.studentName,
     required this.communicationType,
     required this.status,
     required this.dateTime,
     this.durationMinutes,
-    required this.topic,
     required this.notes,
-    this.nextAction,
-    this.nextActionDate,
-    required this.attachmentUrls,
-    required this.isImportant,
-    required this.createdBy,
+    this.createdByName,
     required this.createdAt,
-    required this.updatedAt,
-    this.studentName,
-    this.studentPhone,
   });
 
   factory Communication.fromJson(Map<String, dynamic> json) {
     return Communication(
-      id: json['id'] as String,
-      studentId: json['student_id'] as String,
-      communicationType: json['communication_type'] as String,
-      status: json['status'] as String,
-      dateTime: DateTime.parse(json['date_time'] as String),
-      durationMinutes: json['duration_minutes'] as int?,
-      topic: json['topic'] as String,
-      notes: json['notes'] as String,
-      nextAction: json['next_action'] as String?,
-      nextActionDate: json['next_action_date'] != null
-          ? DateTime.parse(json['next_action_date'] as String)
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      studentId: json['student_id'] is int 
+          ? json['student_id'] 
+          : int.tryParse(json['student_id'].toString()) ?? 0,
+      studentName: json['student_name'],
+      communicationType: json['communication_type'] ?? '',
+      status: json['status'] ?? '',
+      dateTime: DateTime.parse(json['date_time'] ?? DateTime.now().toIso8601String()),
+      durationMinutes: json['duration_minutes'] != null 
+          ? int.tryParse(json['duration_minutes'].toString()) 
           : null,
-      attachmentUrls: List<String>.from(json['attachment_urls'] ?? []),
-      isImportant: json['is_important'] as bool? ?? false,
-      createdBy: json['created_by'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      studentName: json['student_name'] as String?,
-      studentPhone: json['student_phone'] as String?,
+      notes: json['notes'] ?? '',
+      createdByName: json['created_by_name'],
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 
@@ -70,18 +50,18 @@ class Communication {
       'communication_type': communicationType,
       'status': status,
       'date_time': dateTime.toIso8601String(),
-      'duration_minutes': durationMinutes,
-      'topic': topic,
+      if (durationMinutes != null) 'duration_minutes': durationMinutes,
       'notes': notes,
-      'next_action': nextAction,
-      'next_action_date': nextActionDate?.toIso8601String(),
-      'attachment_urls': attachmentUrls,
-      'is_important': isImportant,
-      'created_by': createdBy,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-      'student_name': studentName,
-      'student_phone': studentPhone,
+    };
+  }
+
+  Map<String, dynamic> toCreateJson() {
+    return {
+      'communication_type': communicationType,
+      'status': status,
+      'date_time': dateTime.toIso8601String(),
+      if (durationMinutes != null) 'duration_minutes': durationMinutes,
+      'notes': notes,
     };
   }
 
@@ -96,7 +76,7 @@ class Communication {
       case 'message':
         return 'Сообщение';
       default:
-        return 'Другое';
+        return communicationType;
     }
   }
 
@@ -108,8 +88,6 @@ class Communication {
         return 'Завершено';
       case 'cancelled':
         return 'Отменено';
-      case 'rescheduled':
-        return 'Перенесено';
       default:
         return status;
     }
@@ -125,7 +103,7 @@ class Communication {
     } else if (dateDay == today.subtract(const Duration(days: 1))) {
       return 'Вчера ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } else {
-      return '${dateTime.day.toString().padLeft(2, '0')}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      return '${dateTime.day.toString().padLeft(2, '0')}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.year}';
     }
   }
 

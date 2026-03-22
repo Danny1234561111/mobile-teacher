@@ -10,7 +10,7 @@ class LoginDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'email': email,
+      'email': email.trim().toLowerCase(),
       'password': password,
     };
   }

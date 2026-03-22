@@ -1,3 +1,4 @@
+// pages/profile_page.dart
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
@@ -55,17 +56,14 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirmed == true) {
       await _authService.logout();
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -82,21 +80,9 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -155,20 +141,15 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: _user!.role == 'admin'
-                                    ? Colors.red.shade100
-                                    : Colors.blue.shade100,
+                                color: _user!.isAdmin ? Colors.red.shade100 : Colors.blue.shade100,
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                _user!.role == 'admin' ? 'Администратор' : 'Преподаватель',
+                                _user!.isAdmin ? 'Администратор' : 'Пользователь',
                                 style: TextStyle(
-                                  color: _user!.role == 'admin'
-                                      ? Colors.red
-                                      : Colors.blue,
+                                  color: _user!.isAdmin ? Colors.red : Colors.blue,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -177,102 +158,21 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      _buildInfoCard(
-                        'Email',
-                        _user!.email,
-                        Icons.email,
-                      ),
+                      
+                      _buildInfoCard('ID', _user!.id.toString(), Icons.badge),
                       const SizedBox(height: 12),
-                      if (_user!.phone != null && _user!.phone!.isNotEmpty)
-                        Column(
-                          children: [
-                            _buildInfoCard(
-                              'Телефон',
-                              _user!.phone!,
-                              Icons.phone,
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
-                      if (_user!.direction != null && _user!.direction!.isNotEmpty)
-                        Column(
-                          children: [
-                            _buildInfoCard(
-                              'Направление',
-                              _user!.direction!,
-                              Icons.school,
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
-                      _buildInfoCard(
-                        'Максимум студентов',
-                        '${_user!.maxStudents}',
-                        Icons.people,
-                      ),
+                      _buildInfoCard('Email', _user!.email, Icons.email),
                       const SizedBox(height: 12),
-                      _buildInfoCard(
-                        'Текущее количество студентов',
-                        '${_user!.currentStudentsCount}',
-                        Icons.people_outline,
-                      ),
-                      const SizedBox(height: 32),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Статистика',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text('Зарегистрирован:'),
-                                  Text(
-                                    _user!.createdAt != null
-                                        ? '${_user!.createdAt!.day}.${_user!.createdAt!.month}.${_user!.createdAt!.year}'
-                                        : 'Неизвестно',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text('Последний вход:'),
-                                  Text(
-                                    _user!.lastLogin != null
-                                        ? '${_user!.lastLogin!.day}.${_user!.lastLogin!.month}.${_user!.lastLogin!.year}'
-                                        : 'Неизвестно',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _buildInfoCard('Роль', _user!.role, Icons.work),
+                      
                       const SizedBox(height: 40),
+                      
                       ElevatedButton(
                         onPressed: _logout,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,

@@ -1,3 +1,4 @@
+// pages/add_student_page.dart
 import 'package:flutter/material.dart';
 import '../../models/student.dart';
 
@@ -14,44 +15,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
   final _russianIdController = TextEditingController();
-  final _additionalContactController = TextEditingController();
-  final _directionController = TextEditingController();
-  final _specialtyController = TextEditingController();
-  final _priorityController = TextEditingController();
-  
-  List<String> _additionalContacts = [];
-  DateTime? _selectedDate;
-
-  void _addAdditionalContact() {
-    if (_additionalContactController.text.isNotEmpty) {
-      setState(() {
-        _additionalContacts.add(_additionalContactController.text);
-        _additionalContactController.clear();
-      });
-    }
-  }
-
-  void _removeAdditionalContact(int index) {
-    setState(() {
-      _additionalContacts.removeAt(index);
-    });
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +31,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Российский ID
               TextFormField(
                 controller: _russianIdController,
                 decoration: InputDecoration(
@@ -79,15 +44,20 @@ class _AddStudentPageState extends State<AddStudentPage> {
                   fillColor: Colors.grey.shade50,
                   hintText: '1234567890',
                 ),
+                keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Введите российский ID абитуриента';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'ID должен быть числом';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 15),
 
+              // ФИО
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -111,57 +81,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
               ),
               const SizedBox(height: 15),
 
-              GestureDetector(
-                onTap: () => _selectDate(context),
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    controller: TextEditingController(
-                      text: _selectedDate != null
-                          ? '${_selectedDate!.day}.${_selectedDate!.month}.${_selectedDate!.year}'
-                          : '',
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Дата рождения',
-                      prefixIcon: const Icon(Icons.cake),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.calendar_today),
-                        onPressed: () => _selectDate(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  hintText: 'student@example.com',
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Введите корректный email';
-                    }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 15),
-
+              // Телефон
               TextFormField(
                 controller: _phoneController,
                 decoration: InputDecoration(
@@ -179,157 +99,31 @@ class _AddStudentPageState extends State<AddStudentPage> {
                   if (value == null || value.isEmpty) {
                     return 'Введите номер телефона';
                   }
-                  if (!RegExp(r'^[\d\s\-\+\(\)]{10,}$').hasMatch(value)) {
+                  // Упрощенная валидация - просто проверяем что есть цифры
+                  if (!RegExp(r'[\d\+]').hasMatch(value)) {
                     return 'Введите корректный номер телефона';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 15),
-
-              TextFormField(
-                controller: _directionController,
-                decoration: InputDecoration(
-                  labelText: 'Направление',
-                  prefixIcon: const Icon(Icons.school),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              TextFormField(
-                controller: _specialtyController,
-                decoration: InputDecoration(
-                  labelText: 'Специальность',
-                  prefixIcon: const Icon(Icons.work),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              TextFormField(
-                controller: _priorityController,
-                decoration: InputDecoration(
-                  labelText: 'Место по приоритетам',
-                  prefixIcon: const Icon(Icons.format_list_numbered),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 20),
-
-              Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Дополнительные контакты',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _additionalContactController,
-                              decoration: const InputDecoration(
-                                labelText: 'Telegram, VK и т.д.',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          ElevatedButton(
-                            onPressed: _addAdditionalContact,
-                            child: const Icon(Icons.add),
-                            style: ElevatedButton.styleFrom(
-                              shape: const CircleBorder(),
-                              padding: const EdgeInsets.all(12),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_additionalContacts.isNotEmpty) ...[
-                        const Text('Добавленные контакты:',
-                            style: TextStyle(color: Colors.grey)),
-                        const SizedBox(height: 5),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: List.generate(
-                            _additionalContacts.length,
-                            (index) => Chip(
-                              label: Text(_additionalContacts[index]),
-                              deleteIcon: const Icon(Icons.close, size: 16),
-                              onDeleted: () => _removeAdditionalContact(index),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+              
               const SizedBox(height: 30),
 
+              // Кнопка добавления
               ElevatedButton(
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Форматируем дату рождения для API
-                    String? dateOfBirth;
-                    if (_selectedDate != null) {
-                      dateOfBirth = _selectedDate!.toIso8601String().split('T')[0];
-                    }
-                    
                     // Форматируем номер телефона
                     String phone = _phoneController.text.trim();
-                    if (!phone.startsWith('+')) {
-                      if (phone.startsWith('8')) {
-                        phone = '+7${phone.substring(1)}';
-                      } else if (phone.startsWith('7')) {
-                        phone = '+$phone';
-                      }
-                    }
                     
-                    // Подготавливаем данные для отправки
+                    // Подготавливаем данные для отправки - ТОЛЬКО 3 ПОЛЯ!
                     final studentData = {
-                      'russian_student_id': _russianIdController.text.trim(),
                       'full_name': _nameController.text.trim(),
+                      'russian_student_id': int.parse(_russianIdController.text.trim()),
                       'phone': phone,
-                      'email': _emailController.text.trim().isNotEmpty
-                          ? _emailController.text.trim()
-                          : null,
-                      'date_of_birth': dateOfBirth,
-                      'direction': _directionController.text.trim().isNotEmpty
-                          ? _directionController.text.trim()
-                          : null,
-                      'specialty': _specialtyController.text.trim().isNotEmpty
-                          ? _specialtyController.text.trim()
-                          : null,
-                      'priority_place': _priorityController.text.trim().isNotEmpty
-                          ? int.tryParse(_priorityController.text.trim())
-                          : null,
-                      'additional_contacts': _additionalContacts,
-                      'status': 'active',
                     };
                     
-                    // Удаляем null значения
-                    studentData.removeWhere((key, value) => value == null);
+                    print('📦 Отправка данных: $studentData');
                     
                     try {
                       await widget.onAdd(studentData);
@@ -385,12 +179,7 @@ class _AddStudentPageState extends State<AddStudentPage> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _emailController.dispose();
     _russianIdController.dispose();
-    _directionController.dispose();
-    _specialtyController.dispose();
-    _priorityController.dispose();
-    _additionalContactController.dispose();
     super.dispose();
   }
 }
