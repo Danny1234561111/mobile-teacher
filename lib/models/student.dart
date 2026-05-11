@@ -21,11 +21,19 @@ class Student {
   final String? contactType;
   final bool? consentStatus;
   final int? totalScore;
+  final int? position;
   final DateTime? lastCommunication;
   final String? lastCommunicationNote;
   final int? kuratorId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Map<String, dynamic>? competitiveInfo;
+  
+  // НОВЫЕ ПОЛЯ - 4 статуса
+  final String? meetingStatus;
+  final String? callStatus;
+  final String? decisionStatus;
+  final String? documentsStatus;
 
   Student({
     required this.id,
@@ -49,11 +57,17 @@ class Student {
     this.contactType,
     this.consentStatus,
     this.totalScore,
+    this.position,
     this.lastCommunication,
     this.lastCommunicationNote,
     this.kuratorId,
     this.createdAt,
     this.updatedAt,
+    this.competitiveInfo,
+    this.meetingStatus,
+    this.callStatus,
+    this.decisionStatus,
+    this.documentsStatus,
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
@@ -91,6 +105,9 @@ class Student {
       totalScore: json['total_score'] != null 
           ? int.tryParse(json['total_score'].toString()) 
           : null,
+      position: json['position'] != null 
+          ? int.tryParse(json['position'].toString()) 
+          : null,
       lastCommunication: json['last_communication'] != null 
           ? DateTime.tryParse(json['last_communication']) 
           : null,
@@ -104,6 +121,12 @@ class Student {
       updatedAt: json['updated_at'] != null 
           ? DateTime.tryParse(json['updated_at']) 
           : null,
+      competitiveInfo: json['competitive_info'],
+      // НОВЫЕ ПОЛЯ
+      meetingStatus: json['meeting_status'],
+      callStatus: json['call_status'],
+      decisionStatus: json['decision_status'],
+      documentsStatus: json['documents_status'],
     );
   }
 
@@ -127,6 +150,12 @@ class Student {
       if (contactType != null) 'contact_type': contactType,
       if (consentStatus != null) 'consent_status': consentStatus,
       if (totalScore != null) 'total_score': totalScore,
+      if (position != null) 'position': position,
+      // НОВЫЕ ПОЛЯ
+      if (meetingStatus != null) 'meeting_status': meetingStatus,
+      if (callStatus != null) 'call_status': callStatus,
+      if (decisionStatus != null) 'decision_status': decisionStatus,
+      if (documentsStatus != null) 'documents_status': documentsStatus,
     };
   }
 
@@ -154,6 +183,8 @@ class Student {
         return 'Активный';
       case 'inactive':
         return 'Неактивный';
+      case 'enrolled':
+        return 'Зачислен';
       default:
         return status ?? 'Активный';
     }

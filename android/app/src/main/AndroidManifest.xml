@@ -9,8 +9,51 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     
-    <!-- Для Android 11+ -->
+    <!-- Для Android 11+ - ДОБАВЛЕНЫ ВСЕ НУЖНЫЕ QUERIES -->
     <queries>
+        <!-- Telegram -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tg" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="t.me" />
+        </intent>
+        
+        <!-- WhatsApp -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="whatsapp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="wa.me" />
+        </intent>
+        
+        <!-- Viber -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="viber" />
+        </intent>
+        
+        <!-- Звонки -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CALL" />
+            <data android:scheme="tel" />
+        </intent>
+        
+        <!-- SMS -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="sms" />
+        </intent>
+        
+        <!-- Контакты -->
         <intent>
             <action android:name="android.intent.action.INSERT" />
             <data android:mimeType="vnd.android.cursor.dir/contact" />
@@ -20,13 +63,11 @@
             <data android:scheme="content" />
             <data android:host="com.android.contacts" />
         </intent>
+        
+        <!-- Браузер для fallback -->
         <intent>
-            <action android:name="android.intent.action.DIAL" />
-            <data android:scheme="tel" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.SENDTO" />
-            <data android:scheme="sms" />
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
     
@@ -35,6 +76,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
         
         <activity

@@ -2,6 +2,14 @@
 import 'package:flutter/material.dart';
 import '../../models/student.dart';
 
+// Цвета из Figma
+const Color accentBlue = Color(0xFF0088FF);
+const Color borderColor = Color(0xFFC5C6D0);
+const Color successGreen = Color(0xFF34C759);
+const Color errorRed = Color(0xFFFF383C);
+const Color warningOrange = Color(0xFFFF9800);
+const Color neutralGray = Color(0xFFA0A0A0);
+
 class AddStudentPage extends StatefulWidget {
   final Function(Map<String, dynamic>) onAdd;
 
@@ -20,12 +28,22 @@ class _AddStudentPageState extends State<AddStudentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFECF5FD),
       appBar: AppBar(
-        title: const Text('Добавить студента'),
+        title: const Text(
+          'Добавить студента',
+          style: TextStyle(color: accentBlue, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
+        backgroundColor: const Color(0xFFECF5FD),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: accentBlue),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -34,15 +52,11 @@ class _AddStudentPageState extends State<AddStudentPage> {
               // Российский ID
               TextFormField(
                 controller: _russianIdController,
-                decoration: InputDecoration(
-                  labelText: 'Российский ID абитуриента*',
-                  prefixIcon: const Icon(Icons.badge),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
+                decoration: const InputDecoration(
+                  labelText: 'Российский ID абитуриента *',
+                  border: OutlineInputBorder(),
                   hintText: '1234567890',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -55,19 +69,17 @@ class _AddStudentPageState extends State<AddStudentPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 15),
+              
+              const SizedBox(height: 16),
 
               // ФИО
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'ФИО студента*',
-                  prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
+                decoration: const InputDecoration(
+                  labelText: 'ФИО студента *',
+                  border: OutlineInputBorder(),
+                  hintText: 'Иванов Иван Иванович',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -79,27 +91,23 @@ class _AddStudentPageState extends State<AddStudentPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 15),
+              
+              const SizedBox(height: 16),
 
               // Телефон
               TextFormField(
                 controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: 'Номер телефона*',
-                  prefixIcon: const Icon(Icons.phone),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
+                decoration: const InputDecoration(
+                  labelText: 'Номер телефона *',
+                  border: OutlineInputBorder(),
                   hintText: '+79991234567',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Введите номер телефона';
                   }
-                  // Упрощенная валидация - просто проверяем что есть цифры
                   if (!RegExp(r'[\d\+]').hasMatch(value)) {
                     return 'Введите корректный номер телефона';
                   }
@@ -107,23 +115,19 @@ class _AddStudentPageState extends State<AddStudentPage> {
                 },
               ),
               
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
               // Кнопка добавления
               ElevatedButton(
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    // Форматируем номер телефона
                     String phone = _phoneController.text.trim();
                     
-                    // Подготавливаем данные для отправки - ТОЛЬКО 3 ПОЛЯ!
                     final studentData = {
                       'full_name': _nameController.text.trim(),
                       'russian_student_id': int.parse(_russianIdController.text.trim()),
                       'phone': phone,
                     };
-                    
-                    print('📦 Отправка данных: $studentData');
                     
                     try {
                       await widget.onAdd(studentData);
@@ -132,41 +136,39 @@ class _AddStudentPageState extends State<AddStudentPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Ошибка: $e'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: errorRed,
                         ),
                       );
                     }
                   }
                 },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Text(
-                    'Добавить студента',
-                    style: TextStyle(fontSize: 16),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                child: const Text(
+                  'Добавить студента',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               OutlinedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Text('Отмена'),
-                ),
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: neutralGray,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  side: const BorderSide(color: borderColor),
                 ),
+                child: const Text('Отмена', style: TextStyle(fontSize: 16)),
               ),
             ],
           ),

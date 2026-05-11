@@ -1,6 +1,13 @@
 // pages/add_communication_page.dart
 import 'package:flutter/material.dart';
-import '../models/communication.dart';
+
+// Цвета из Figma
+const Color accentBlue = Color(0xFF0088FF);
+const Color borderColor = Color(0xFFC5C6D0);
+const Color successGreen = Color(0xFF34C759);
+const Color errorRed = Color(0xFFFF383C);
+const Color warningOrange = Color(0xFFFF9800);
+const Color neutralGray = Color(0xFFA0A0A0);
 
 class AddCommunicationPage extends StatefulWidget {
   final int studentId;
@@ -54,45 +61,80 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
     }
   }
 
+  String _getCommunicationTypeName(String type) {
+    switch (type) {
+      case 'call': return 'Звонок';
+      case 'meeting': return 'Встреча';
+      case 'email': return 'Email';
+      case 'message': return 'Сообщение';
+      default: return type;
+    }
+  }
+
+  String _getStatusName(String status) {
+    switch (status) {
+      case 'completed': return 'Завершено';
+      case 'planned': return 'Запланировано';
+      case 'cancelled': return 'Отменено';
+      default: return status;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFECF5FD),
       appBar: AppBar(
-        title: const Text('Добавить коммуникацию'),
+        title: const Text(
+          'Добавить коммуникацию',
+          style: TextStyle(color: accentBlue, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
+        backgroundColor: const Color(0xFFECF5FD),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: accentBlue),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // pages/add_communication_page.dart (продолжение)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Студент',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              // Студент (простой текст, без карточки)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Студент: ',
+                      style: TextStyle(fontSize: 14, color: neutralGray),
+                    ),
+                    Expanded(
+                      child: Text(
+                        widget.studentName,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
-                      Text(widget.studentName),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const Divider(color: borderColor),
+              
+              const SizedBox(height: 8),
 
+              // Тип коммуникации
               DropdownButtonFormField<String>(
                 value: _communicationType,
                 decoration: const InputDecoration(
-                  labelText: 'Тип коммуникации*',
+                  labelText: 'Тип коммуникации *',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: _communicationTypes.map((type) {
                   return DropdownMenuItem(
@@ -104,14 +146,10 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
                           type == 'meeting' ? Icons.group :
                           type == 'email' ? Icons.email : Icons.message,
                           size: 20,
-                          color: Colors.blue,
+                          color: accentBlue,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          type == 'call' ? 'Звонок' :
-                          type == 'meeting' ? 'Встреча' :
-                          type == 'email' ? 'Email' : 'Сообщение',
-                        ),
+                        Text(_getCommunicationTypeName(type)),
                       ],
                     ),
                   );
@@ -125,18 +163,31 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
 
               const SizedBox(height: 16),
 
+              // Статус
               DropdownButtonFormField<String>(
                 value: _status,
                 decoration: const InputDecoration(
-                  labelText: 'Статус*',
+                  labelText: 'Статус *',
                   border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: _statuses.map((status) {
                   return DropdownMenuItem(
                     value: status,
-                    child: Text(
-                      status == 'completed' ? 'Завершено' :
-                      status == 'planned' ? 'Запланировано' : 'Отменено',
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: status == 'completed' ? successGreen :
+                                   status == 'planned' ? accentBlue : errorRed,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(_getStatusName(status)),
+                      ],
                     ),
                   );
                 }).toList(),
@@ -149,11 +200,12 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
 
               const SizedBox(height: 16),
 
+              // Дата и время
               InkWell(
                 onTap: _selectDateTime,
                 child: InputDecorator(
                   decoration: const InputDecoration(
-                    labelText: 'Дата и время*',
+                    labelText: 'Дата и время *',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
@@ -165,6 +217,7 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
 
               const SizedBox(height: 16),
 
+              // Длительность
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Длительность (минуты)',
@@ -179,14 +232,16 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
 
               const SizedBox(height: 16),
 
+              // Заметки
               TextFormField(
                 controller: _notesController,
                 decoration: const InputDecoration(
-                  labelText: 'Заметки*',
+                  labelText: 'Заметки *',
                   border: OutlineInputBorder(),
                   hintText: 'Опишите детали разговора...',
+                  alignLabelWithHint: true,
                 ),
-                maxLines: 5,
+                maxLines: 4,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Введите заметки о коммуникации';
@@ -195,8 +250,9 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
                 },
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
+              // Кнопка сохранения
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -212,20 +268,33 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
                     Navigator.pop(context);
                   }
                 },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Text('Сохранить', style: TextStyle(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Сохранить',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               OutlinedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Text('Отмена'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: neutralGray,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: const BorderSide(color: borderColor),
                 ),
+                child: const Text('Отмена', style: TextStyle(fontSize: 16)),
               ),
             ],
           ),
@@ -240,4 +309,3 @@ class _AddCommunicationPageState extends State<AddCommunicationPage> {
     super.dispose();
   }
 }
-       

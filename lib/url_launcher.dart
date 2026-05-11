@@ -158,4 +158,4 @@ class UrlLauncherService {
       throw Exception('Ошибка при открытии WhatsApp: $e');
     }
   }
-}g
+}

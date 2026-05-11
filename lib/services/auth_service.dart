@@ -1,5 +1,6 @@
 // services/auth_service.dart
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_response.dart';
@@ -202,7 +203,7 @@ class AuthService {
     }
   }
 
-  // ИСПРАВЛЕНО: токен в query параметре для /api/auth/me
+  // Токен в query параметре для /api/auth/me
   Future<User> getProfile() async {
     try {
       final token = await getToken();
@@ -211,7 +212,6 @@ class AuthService {
         throw Exception('Не авторизован');
       }
 
-      // ВАЖНО: токен в query параметре, не в заголовке!
       final url = Uri.parse('$BASE_URL/api/auth/me').replace(
         queryParameters: {'token': token}
       );
@@ -220,7 +220,7 @@ class AuthService {
 
       final response = await http.get(
         url,
-        headers: {'Content-Type': 'application/json'}, // Без Authorization
+        headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
 
       print('📊 Статус профиля: ${response.statusCode}');
@@ -238,7 +238,6 @@ class AuthService {
         await clearAuthData();
         throw Exception('Токен невалиден');
       } else if (response.statusCode == 422) {
-        // Сервер ожидает токен в query параметре
         throw Exception('Ошибка формата запроса. Токен должен быть в query параметре');
       } else {
         throw Exception('Ошибка загрузки профиля: ${response.statusCode}');
@@ -249,7 +248,7 @@ class AuthService {
     }
   }
 
-  // ИСПРАВЛЕНО: для /api/auth/logout тоже используем query параметр
+  // Для /api/auth/logout используем query параметр
   Future<void> logout() async {
     try {
       final token = await getToken();
@@ -408,6 +407,79 @@ class AuthService {
       print('  • ID: ${user.id}');
     } else {
       print('  • Пользователь: не загружен');
+    }
+  }
+
+  // ✅ ИСПРАВЛЕННЫЙ метод getActiveContact - использует Bearer токен в заголовке
+  Future<Map<String, String>?> getActiveContact() async {
+    final token = await getToken();
+    print('🔑 getActiveContact: token = ${token != null ? "есть" : "нет"}');
+    
+    if (token == null) {
+      print('❌ getActiveContact: Нет токена');
+      return null;
+    }
+    
+    try {
+      // Используем Bearer токен в заголовке, а не в query параметре
+      final url = Uri.parse('$BASE_URL/api/user/contact/get');
+      
+      print('🔄 getActiveContact: Запрос к $url');
+      print('🔑 Bearer токен: ${token.substring(0, min(20, token.length))}...');
+      
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',  // ВАЖНО: токен в заголовке
+        },
+      ).timeout(const Duration(seconds: 10));
+      
+      print('📊 getActiveContact: Статус ответа ${response.statusCode}');
+      print('📝 getActiveContact: Тело ответа ${response.body}');
+      
+      if (response.statusCode == 200 && response.body.isNotEmpty && response.body != 'null') {
+        final data = json.decode(response.body);
+        print('✅ getActiveContact: Получены данные: $data');
+        
+        if (data != null && data['contact_type'] != null && data['contact_value'] != null) {
+          return {
+            'type': data['contact_type'],
+            'value': data['contact_value'],
+          };
+        }
+      } else if (response.statusCode == 403) {
+        print('⚠️ getActiveContact: Доступ запрещен (403). Возможно, активный контакт не установлен в веб-версии.');
+      } else if (response.statusCode == 404) {
+        print('⚠️ getActiveContact: Эндпоинт не найден (404).');
+      }
+      
+      print('❌ getActiveContact: Нет активного контакта');
+      return null;
+    } catch (e) {
+      print('❌ getActiveContact: Ошибка $e');
+      return null;
+    }
+  }
+  
+  // Обновление профиля пользователя (включая активный контакт)
+  Future<void> updateProfile(Map<String, dynamic> updates) async {
+    final token = await getToken();
+    if (token == null) throw Exception('Не авторизован');
+    
+    final url = Uri.parse('$BASE_URL/api/user/profile');
+    
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode(updates),
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка обновления профиля');
     }
   }
 }

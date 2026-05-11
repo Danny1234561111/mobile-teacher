@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/student.dart';
 import '../models/communication.dart';
+import '../models/student_application.dart';
+import '../models/group_statistics.dart';
 import 'auth_service.dart';
 
 class StudentService {
@@ -26,6 +28,39 @@ class StudentService {
   Future<Uri> _buildUrl(String path, {Map<String, dynamic>? queryParams}) async {
     final uri = Uri.parse('$BASE_URL$path');
     return uri.replace(queryParameters: queryParams);
+  }
+
+  // ========== ПАРСЕР ==========
+
+  /// Запуск парсера для обновления данных
+  Future<Map<String, dynamic>> runParser() async {
+    try {
+      final url = Uri.parse('$BASE_URL/api/parser/run');
+      final headers = await _getHeaders();
+      
+      print('🔄 Запуск парсера: $url');
+
+      final response = await http.post(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 60));
+
+      print('📊 Статус парсера: ${response.statusCode}');
+      print('📝 Ответ парсера: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data;
+      } else if (response.statusCode == 401) {
+        await _authService.clearAuthData();
+        throw Exception('Сессия истекла. Войдите снова.');
+      } else {
+        throw Exception('Ошибка запуска парсера: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Ошибка при запуске парсера: $e');
+      throw Exception('Не удалось запустить парсер: $e');
+    }
   }
 
   // ========== СТУДЕНТЫ ==========
@@ -54,7 +89,7 @@ class StudentService {
         if (search != null && search.isNotEmpty) 'search': search,
       };
 
-      final url = await _buildUrl('/api/students/api/students', queryParams: queryParams);
+      final url = await _buildUrl('/api/students', queryParams: queryParams);
       final headers = await _getHeaders();
 
       print('🔄 Запрос студентов: $url');
@@ -73,7 +108,6 @@ class StudentService {
         final List<dynamic> studentsJson = data['students'] ?? [];
         return studentsJson.map((json) => Student.fromJson(json)).toList();
       } else if (response.statusCode == 401) {
-        // Токен невалиден - очищаем данные и выбрасываем ошибку
         await _authService.clearAuthData();
         throw Exception('Сессия истекла. Пожалуйста, войдите снова.');
       } else {
@@ -92,7 +126,7 @@ class StudentService {
 
   Future<Student> getStudentById(int studentId) async {
     try {
-      final url = await _buildUrl('/api/students/api/students/$studentId');
+      final url = await _buildUrl('/api/students/$studentId');
       final headers = await _getHeaders();
       
       print('🔄 Получение студента по ID: $url');
@@ -119,16 +153,106 @@ class StudentService {
     }
   }
 
+  // Получить все заявления студента
+  Future<List<StudentApplication>> getStudentApplications(int studentId) async {
+    try {
+      final url = await _buildUrl('/api/students/$studentId/applications');
+      final headers = await _getHeaders();
+      
+      print('🔄 Получение заявлений студента: $url');
+
+      final response = await http.get(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => StudentApplication.fromJson(json)).toList();
+      } else if (response.statusCode == 404) {
+        return [];
+      } else if (response.statusCode == 401) {
+        await _authService.clearAuthData();
+        throw Exception('Сессия истекла. Войдите снова.');
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print('❌ Ошибка при загрузке заявлений: $e');
+      return [];
+    }
+  }
+
+  // Получить конкурсную информацию для конкретной специальности (правильный эндпоинт)
+  Future<Map<String, dynamic>> getStudentCompetitiveInfoForSpeciality(
+    int studentId, 
+    int specialityId
+  ) async {
+    try {
+      final url = await _buildUrl('/api/students/$studentId/competitive-info/$specialityId');
+      final headers = await _getHeaders();
+      
+      print('🔄 Получение конкурсной информации для специальности $specialityId: $url');
+
+      final response = await http.get(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        return {};
+      } else if (response.statusCode == 401) {
+        await _authService.clearAuthData();
+        throw Exception('Сессия истекла. Войдите снова.');
+      } else {
+        return {};
+      }
+    } catch (e) {
+      print('❌ Ошибка при загрузке конкурсной информации: $e');
+      return {};
+    }
+  }
+
+  // Получить общую конкурсную информацию (может не работать, если нет основной специальности)
+  Future<Map<String, dynamic>> getStudentCompetitiveInfo(int studentId) async {
+    try {
+      final url = await _buildUrl('/api/students/$studentId/competitive-info');
+      final headers = await _getHeaders();
+      
+      print('🔄 Получение общей конкурсной информации: $url');
+
+      final response = await http.get(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        return {};
+      } else if (response.statusCode == 401) {
+        await _authService.clearAuthData();
+        throw Exception('Сессия истекла. Войдите снова.');
+      } else {
+        return {};
+      }
+    } catch (e) {
+      print('❌ Ошибка при загрузке конкурсной информации: $e');
+      return {};
+    }
+  }
+
   Future<Student> createStudent(Map<String, dynamic> studentData) async {
     try {
-      // Проверяем обязательные поля
       if (!studentData.containsKey('full_name') || 
           !studentData.containsKey('russian_student_id') || 
           !studentData.containsKey('phone')) {
         throw Exception('Необходимо указать ФИО, ID и телефон');
       }
 
-      final url = await _buildUrl('/api/students/api/students');
+      final url = await _buildUrl('/api/students');
       final headers = await _getHeaders();
       
       print('🔄 Создание студента: $url');
@@ -164,7 +288,7 @@ class StudentService {
 
   Future<Student> updateStudent(int id, Map<String, dynamic> updates) async {
     try {
-      final url = await _buildUrl('/api/students/api/students/$id');
+      final url = await _buildUrl('/api/students/$id');
       final headers = await _getHeaders();
       
       print('🔄 Обновление студента: $url');
@@ -198,7 +322,7 @@ class StudentService {
 
   Future<void> deleteStudent(int id) async {
     try {
-      final url = await _buildUrl('/api/students/api/students/$id');
+      final url = await _buildUrl('/api/students/$id');
       final headers = await _getHeaders();
       
       print('🔄 Удаление студента: $url');
@@ -238,7 +362,7 @@ class StudentService {
       };
 
       final url = await _buildUrl(
-        '/api/students/api/students/$studentId/communications',
+        '/api/students/$studentId/communications',
         queryParams: queryParams,
       );
       final headers = await _getHeaders();
@@ -270,7 +394,7 @@ class StudentService {
     Map<String, dynamic> data,
   ) async {
     try {
-      final url = await _buildUrl('/api/students/api/students/$studentId/communications');
+      final url = await _buildUrl('/api/students/$studentId/communications');
       final headers = await _getHeaders();
       
       print('🔄 Создание коммуникации: $url');
@@ -305,7 +429,7 @@ class StudentService {
     Map<String, dynamic> updates,
   ) async {
     try {
-      final url = await _buildUrl('/api/students/api/students/communications/$commId');
+      final url = await _buildUrl('/api/students/communications/$commId');
       final headers = await _getHeaders();
       
       print('🔄 Обновление коммуникации: $url');
@@ -335,7 +459,7 @@ class StudentService {
 
   Future<void> deleteCommunication(int commId) async {
     try {
-      final url = await _buildUrl('/api/students/api/students/communications/$commId');
+      final url = await _buildUrl('/api/students/communications/$commId');
       final headers = await _getHeaders();
       
       print('🔄 Удаление коммуникации: $url');
@@ -365,7 +489,7 @@ class StudentService {
     try {
       final queryParams = {'days_back': daysBack.toString()};
       final url = await _buildUrl(
-        '/api/students/api/students/communications/stats',
+        '/api/students/communications/stats',
         queryParams: queryParams,
       );
       final headers = await _getHeaders();
@@ -401,7 +525,6 @@ class StudentService {
       return false;
     }
   }
-  // services/student_service.dart - добавить методы
 
   // ========== СПРАВОЧНИКИ ==========
 
@@ -483,6 +606,106 @@ class StudentService {
       }
     } catch (e) {
       print('❌ Ошибка при загрузке профилей: $e');
+      return [];
+    }
+  }
+  // Добавьте эти методы в student_service.dart
+
+// ========== АКТИВНЫЙ КОНТАКТ ==========
+
+Future<Map<String, dynamic>?> getActiveContact() async {
+  try {
+    final url = await _buildUrl('/api/user/contact/get');
+    final headers = await _getHeaders();
+    
+    final response = await http.get(
+      url,
+      headers: headers,
+    ).timeout(const Duration(seconds: 30));
+    
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else if (response.statusCode == 404) {
+      return null;
+    } else {
+      return null;
+    }
+  } catch (e) {
+    print('❌ Ошибка получения активного контакта: $e');
+    return null;
+  }
+}
+
+Future<Map<String, dynamic>> setActiveContact(String contactType, String contactValue) async {
+  try {
+    final url = await _buildUrl('/api/user/contact/set');
+    final headers = await _getHeaders();
+    
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: json.encode({
+        'contact_type': contactType,
+        'contact_value': contactValue,
+      }),
+    ).timeout(const Duration(seconds: 30));
+    
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Ошибка установки активного контакта: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('❌ Ошибка установки активного контакта: $e');
+    throw Exception('Не удалось установить активный контакт: $e');
+  }
+}
+
+Future<void> deleteActiveContact() async {
+  try {
+    final url = await _buildUrl('/api/user/contact/delete');
+    final headers = await _getHeaders();
+    
+    final response = await http.delete(
+      url,
+      headers: headers,
+    ).timeout(const Duration(seconds: 30));
+    
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка удаления активного контакта: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('❌ Ошибка удаления активного контакта: $e');
+    throw Exception('Не удалось удалить активный контакт: $e');
+  }
+}
+  // ========== СТАТИСТИКА ГРУПП ==========
+
+  /// Получить статистику по всем группам (бюджет, платное, целевое)
+  Future<List<GroupStatistics>> getGroupStatistics() async {
+    try {
+      final url = await _buildUrl('/api/students/statistics/groups');
+      final headers = await _getHeaders();
+      
+      print('🔄 Получение статистики групп: $url');
+
+      final response = await http.get(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => GroupStatistics.fromJson(json)).toList();
+      } else if (response.statusCode == 401) {
+        await _authService.clearAuthData();
+        throw Exception('Сессия истекла. Войдите снова.');
+      } else {
+        print('⚠️ Ошибка получения статистики групп: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('❌ Ошибка при загрузке статистики групп: $e');
       return [];
     }
   }

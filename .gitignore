@@ -43,3 +43,176 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Additional Flutter files
+*.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+linked_*.ds
+unlinked.ds
+unlinked_spec.ds
+.flutter-version
+
+# Android related
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.*
+**/android/app/src/**/*.kt
+**/android/app/src/**/*.java
+**/android/build/reports/
+**/android/*.iml
+**/android/**/*.iml
+android/app/src/debug/AndroidManifest.xml
+android/app/src/profile/AndroidManifest.xml
+android/app/src/main/kotlin/
+android/build/reports/
+
+# iOS/Xcode related
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/build
+**/ios/**/DerivedData
+**/ios/**/Icon?
+**/ios/**/Pods
+**/ios/**/.symlinks/
+**/ios/**/profile
+**/ios/**/xcuserdata
+**/ios/.generated/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Podfile.lock
+**/ios/*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+**/ios/*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/
+ios/Runner.xcworkspace/xcshareddata/
+ios/RunnerTests/
+
+# macOS
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/Flutter-Debug.xcconfig
+**/macos/Flutter/Flutter-Release.xcconfig
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral/
+**/macos/Podfile.lock
+**/macos/Pods/
+**/macos/RunnerTests/
+**/macos/Flutter/Generated.xcconfig
+
+# Linux
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+linux/flutter/generated_plugins.cmake
+linux/runner/CMakeLists.txt
+linux/runner/main.cc
+linux/runner/my_application.cc
+linux/runner/my_application.h
+
+# Windows
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
+windows/runner/CMakeLists.txt
+windows/runner/Runner.rc
+windows/runner/flutter_window.cpp
+windows/runner/flutter_window.h
+windows/runner/main.cpp
+windows/runner/resource.h
+windows/runner/resources/
+windows/runner/runner.exe.manifest
+windows/runner/utils.cpp
+windows/runner/utils.h
+windows/runner/win32_window.cpp
+windows/runner/win32_window.h
+
+# Web
+web/icons/
+web/favicon.png
+web/manifest.json
+
+# Test
+test/widget_test.dart
+
+# Environment files
+.env.local
+.env.production
+.env.development
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+.metadata
