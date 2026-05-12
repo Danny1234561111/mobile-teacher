@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 import '../services/student_service.dart';
 import '../models/user.dart';
 import 'student_list_page.dart';
-
+import 'login_page.dart';
 // Цвета из Figma
 const Color accentBlue = Color(0xFF0088FF);
 const Color borderColor = Color(0xFFC5C6D0);
@@ -66,9 +66,10 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirmed == true) {
       await _authService.logout();
       if (mounted) {
+        // Изменено: перенаправляем на LoginPage вместо StudentsListPage
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const StudentsListPage()),
+          MaterialPageRoute(builder: (context) => const LoginPage()),
           (route) => false,
         );
       }
