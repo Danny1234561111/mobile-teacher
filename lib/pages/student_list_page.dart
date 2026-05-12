@@ -223,9 +223,9 @@ Widget _getPriorContactIconWidget(String? priorContact) {
       mainAxisSize: MainAxisSize.min,
       children: [
         Image.asset(
-          'assets/icons/link.png',
-          width: 28,
-          height: 28,
+          'assets/icons/link2.png',
+          width: 32,
+          height: 32,
           errorBuilder: (context, error, stackTrace) => 
               const Icon(Icons.link, size: 28, color: Colors.purple),
         ),
