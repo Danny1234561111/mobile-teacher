@@ -969,7 +969,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                   const SizedBox(height: 12),
                   _buildStatRow(
                     'Место в конкурсе',
-                    '${competitiveInfo?['position'] ?? '—'} из ${groupStat.totalApplications}',
+                    '${app.position ?? '—'} из ${groupStat.totalApplications}',
                   ),
                   if (placesTotal > 0) ...[
                     const SizedBox(height: 8),
