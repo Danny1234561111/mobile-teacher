@@ -1680,8 +1680,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                     
                     const SizedBox(height: 8),
                     
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.62, 
+                    Expanded(
                       child: filteredStudents.isEmpty
                           ? Center(
                               child: Column(
@@ -1707,20 +1706,16 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                               ),
                             )
                           : RefreshIndicator(
-                            
                               onRefresh: _refreshStudents,
                               child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                                 itemCount: paginatedStudents.length,
-                                itemBuilder: (context, index) {
-                                  final student = paginatedStudents[index];
-                                  return _buildStudentCard(student);
-                                },
+                                itemBuilder: (context, index) => _buildStudentCard(paginatedStudents[index]),
                               ),
                             ),
                     ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.only(top: 0, bottom: 45),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
