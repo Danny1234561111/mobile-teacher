@@ -10,7 +10,6 @@ import 'add_communication_page.dart';
 import 'edit_student_page.dart';
 import 'profile_page.dart';
 
-// Цвета из Figma
 const Color accentBlue = Color(0xFF0088FF);
 const Color borderColor = Color(0xFFC5C6D0);
 const Color successGreen = Color(0xFF34C759);
@@ -39,7 +38,6 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
   bool _loadingCompetitive = false;
   late Student _currentStudent;
   
-  // Для активного контакта
   Map<String, dynamic>? _activeContact;
   bool _isActiveContactLoading = false;
 
@@ -170,6 +168,67 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     }
   }
 
+  Future<void> _updateCommunication(int commId, Map<String, dynamic> data) async {
+    try {
+      final updatedComm = await _studentService.updateCommunication(commId, data);
+      setState(() {
+        final index = _communications.indexWhere((c) => c.id == commId);
+        if (index != -1) {
+          _communications[index] = updatedComm;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Коммуникация обновлена'), backgroundColor: successGreen),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: errorRed),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _deleteCommunication(int commId) async {
+    try {
+      await _studentService.deleteCommunication(commId);
+      setState(() {
+        _communications.removeWhere((c) => c.id == commId);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Коммуникация удалена'), backgroundColor: successGreen),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: errorRed),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  void _editCommunication(Communication comm) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddCommunicationPage(
+          studentId: _currentStudent.id,
+          studentName: _currentStudent.fullName,
+          communication: comm,
+          onSuccess: () {
+            _loadCommunications();
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _updateStudent(Student updatedStudent) async {
     setState(() {
       _currentStudent = updatedStudent;
@@ -191,12 +250,10 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     String _getContactTypeForApi(String? priorContact) {
       if (priorContact == null || priorContact.isEmpty) return '';
       final value = priorContact.toLowerCase();
-      
       if (value == 'telegram' || value == 'телеграмм') return 'telegram';
       if (value == 'messages' || value == 'sms' || value == 'просто сообщения') return 'sms';
       if (value == 'phone' || value == 'call' || value == 'звонок') return 'call';
       if (value == 'url' || value == 'ссылка') return 'url';
-      
       return 'other';
     }
     
@@ -226,9 +283,9 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
       if (contactType == 'call' || contactType == 'sms') {
         message = 'У студента не указан номер телефона';
       } else if (contactType == 'telegram') {
-        message = 'У студента не указан Telegram. Добавьте его в дополнительные контакты';
+        message = 'У студента не указан Telegram';
       } else if (contactType == 'url') {
-        message = 'У студента не указана ссылка. Добавьте её в дополнительные контакты';
+        message = 'У студента не указана ссылка';
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: warningOrange),
@@ -252,7 +309,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
         final result = await _studentService.setActiveContact(contactType, contactValue);
         setState(() => _activeContact = result);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Активный контакт включен'), backgroundColor: successGreen),
+          const SnackBar(content: Text('Активный контакт включен'), backgroundColor: successGreen),
         );
       }
       await _loadActiveContact();
@@ -297,14 +354,11 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
 
   String _getPriorContactDisplayName(String? priorContact) {
     if (priorContact == null || priorContact.isEmpty) return 'Не указан';
-    
     final value = priorContact.toLowerCase();
-    
     if (value == 'telegram' || value == 'телеграмм') return 'Telegram';
     if (value == 'messages' || value == 'sms' || value == 'просто сообщения') return 'SMS';
     if (value == 'phone' || value == 'call' || value == 'звонок') return 'Звонок';
     if (value == 'url' || value == 'ссылка') return 'Ссылка';
-    
     return priorContact;
   }
 
@@ -312,6 +366,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     switch (status?.toLowerCase()) {
       case 'met': return 'Был на сборе';
       case 'not_met': return 'Не был на сборе';
+      case 'unknown': return 'Не указано';
       default: return status ?? 'Не указан';
     }
   }
@@ -328,6 +383,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     switch (status?.toLowerCase()) {
       case 'reached': return 'Дозвонились';
       case 'not_reached': return 'Не дозвонились';
+      case 'unknown': return 'Не указано';
       default: return status ?? 'Не указан';
     }
   }
@@ -344,6 +400,8 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     switch (status?.toLowerCase()) {
       case 'decided': return 'Решил поступать';
       case 'thinking': return 'Думает';
+      case 'denied': return 'Отказано';
+      case 'unknown': return 'Не указано';
       default: return status ?? 'Не указан';
     }
   }
@@ -352,6 +410,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     switch (status?.toLowerCase()) {
       case 'decided': return successGreen;
       case 'thinking': return warningOrange;
+      case 'denied': return errorRed;
       default: return neutralGray;
     }
   }
@@ -362,6 +421,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
       case 'waiting_original': return 'Ждем оригинал';
       case 'enrolled': return 'Зачислен';
       case 'not_submitted': return 'Нет заявл.';
+      case 'unknown': return 'Не указано';
       default: return status ?? 'Не указан';
     }
   }
@@ -387,12 +447,17 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     }
   }
 
+  // ========== ИСПРАВЛЕННЫЕ ФУНКЦИИ ДЛЯ СВЯЗИ ==========
+  
+  // Telegram - всегда доступен, использует номер телефона если нет явного Telegram
   void _handleTelegram() {
-    if (_currentStudent.additionalContacts?.containsKey('telegram') == true) {
-      final telegram = _currentStudent.additionalContacts!['telegram']!;
-      ContactService.openTelegram(telegram, _currentStudent.fullName);
+    final telegramContact = _currentStudent.additionalContacts?['telegram'] ?? _currentStudent.phone;
+    if (telegramContact.isNotEmpty) {
+      ContactService.openTelegram(telegramContact, _currentStudent.fullName);
     } else {
-      ContactService.openTelegram(_currentStudent.phone, _currentStudent.fullName);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Номер телефона не указан'), backgroundColor: warningOrange),
+      );
     }
   }
 
@@ -410,6 +475,20 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
   void _handleCall() {
     if (_currentStudent.phone.isNotEmpty) {
       ContactService.callStudent(_currentStudent.phone);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Номер телефона не указан'), backgroundColor: warningOrange),
+      );
+    }
+  }
+
+  void _handleSms() {
+    if (_currentStudent.phone.isNotEmpty) {
+      ContactService.sendSms(_currentStudent.phone);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Номер телефона не указан'), backgroundColor: warningOrange),
+      );
     }
   }
 
@@ -424,6 +503,14 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
         if (contactValue != null && contactValue.isNotEmpty) {
           ContactService.openUrl(contactValue);
         }
+      } else if (contactType == 'call') {
+        if (contactValue != null && contactValue.isNotEmpty) {
+          ContactService.callStudent(contactValue);
+        }
+      } else if (contactType == 'sms') {
+        if (contactValue != null && contactValue.isNotEmpty) {
+          ContactService.sendSms(contactValue);
+        }
       }
     }
   }
@@ -434,115 +521,107 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     final bool isActiveContactEnabled = _activeContact != null && 
         _activeContact!['contact_value'] == contactValue;
     
+    // Проверяем доступность Telegram (всегда доступен если есть телефон)
+    final hasTelegram = (_currentStudent.additionalContacts?['telegram'] != null && 
+        _currentStudent.additionalContacts!['telegram']!.isNotEmpty) ||
+        _currentStudent.phone.isNotEmpty;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFECF5FD),
       appBar: AppBar(
-      title: Text(
-        "Абитуриент",
-        style: const TextStyle(color: accentBlue, fontWeight: FontWeight.bold),
-      ),
-      centerTitle: true,
-      backgroundColor: const Color(0xFFECF5FD),
-      elevation: 0,
-      leadingWidth: 80, // увеличиваем ширину области leading
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 16), 
-        child: IconButton(
-          icon: Image.asset(
-            'assets/icons/home.png',
-            width: 28,
-            height: 28,
-            errorBuilder: (context, error, stackTrace) => 
-                const Icon(Icons.home, size: 28, color: accentBlue),
-          ),
-          onPressed: () => Navigator.pop(context),
+        title: const Text(
+          "Абитуриент",
+          style: TextStyle(color: accentBlue, fontWeight: FontWeight.bold),
         ),
-      ),
-      actions: [
-        // 1. Кнопка парсера
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: GestureDetector(
-            onTap: () async {
-              try {
-                await _studentService.runParser();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Парсер запущен'), backgroundColor: successGreen),
-                );
-                await _loadCommunications();
-                await _loadApplications();
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Ошибка запуска парсера: $e'), backgroundColor: errorRed),
-                );
-              }
-            },
-            child: Image.asset(
-              'assets/icons/parse2.png',
+        centerTitle: true,
+        backgroundColor: const Color(0xFFECF5FD),
+        elevation: 0,
+        leadingWidth: 80,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: IconButton(
+            icon: Image.asset(
+              'assets/icons/home.png',
               width: 28,
               height: 28,
-              errorBuilder: (context, error, stackTrace) => 
-                  const Icon(Icons.cloud_upload, size: 28, color: accentBlue),
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.home, size: 28, color: accentBlue),
             ),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
-        
-        // 2. Кнопка профиля
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
-              );
-            },
-            child: Image.asset(
-              'assets/icons/profile3.png',
-              width: 28,
-              height: 28,
-              errorBuilder: (context, error, stackTrace) => 
-                  const Icon(Icons.person, size: 28, color: accentBlue),
-            ),
-          ),
-        ),
-        
-        // 3. Кнопка звезда (активный контакт)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: GestureDetector(
-            onTap: _isActiveContactLoading ? null : _toggleActiveContact,
-            child: Image.asset(
-              isActiveContactEnabled 
-                  ? 'assets/icons/star2.png' 
-                  : 'assets/icons/star1.png',
-              width: 24,
-              height: 24,
-              errorBuilder: (context, error, stackTrace) => Icon(
-                isActiveContactEnabled ? Icons.star : Icons.star_border,
-                color: isActiveContactEnabled ? Colors.amber : accentBlue,
-                size: 24,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: () async {
+                try {
+                  await _studentService.runParser();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Парсер запущен'), backgroundColor: successGreen),
+                  );
+                  await _loadCommunications();
+                  await _loadApplications();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка запуска парсера: $e'), backgroundColor: errorRed),
+                  );
+                }
+              },
+              child: Image.asset(
+                'assets/icons/parse2.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.cloud_upload, size: 28, color: accentBlue),
               ),
             ),
           ),
-        ),
-        
-        // 4. Кнопка редактирования
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: GestureDetector(
-            onTap: () => _navigateToEditStudent(),
-            child: Image.asset(
-              'assets/icons/edit.png',
-              width: 28,
-              height: 28,
-              errorBuilder: (context, error, stackTrace) => 
-                  const Icon(Icons.edit, size: 28, color: accentBlue),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                );
+              },
+              child: Image.asset(
+                'assets/icons/profile3.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 28, color: accentBlue),
+              ),
             ),
           ),
-        ),
-      ],
-    ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: _isActiveContactLoading ? null : _toggleActiveContact,
+              child: Image.asset(
+                isActiveContactEnabled ? 'assets/icons/star2.png' : 'assets/icons/star1.png',
+                width: 24,
+                height: 24,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  isActiveContactEnabled ? Icons.star : Icons.star_border,
+                  color: isActiveContactEnabled ? Colors.amber : accentBlue,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: GestureDetector(
+              onTap: () => _navigateToEditStudent(),
+              child: Image.asset(
+                'assets/icons/edit.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.edit, size: 28, color: accentBlue),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -571,9 +650,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
   String? _getContactValueForActive() {
     final priorContact = _currentStudent.priorContact;
     if (priorContact == null || priorContact.isEmpty) return null;
-    
     final value = priorContact.toLowerCase();
-    
     if (value == 'звонок' || value == 'call' || value == 'phone' ||
         value == 'просто сообщения' || value == 'messages' || value == 'sms') {
       return _currentStudent.phone;
@@ -653,41 +730,13 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildStatusChip(
-                  'Статус документов',
-                  _getDocumentsStatusText(_currentStudent.documentsStatus),
-                  _getDocumentsStatusColor(_currentStudent.documentsStatus),
-                ),
-                _buildStatusChip(
-                  'Был на сборе',
-                  _getMeetingStatusText(_currentStudent.meetingStatus),
-                  _getMeetingStatusColor(_currentStudent.meetingStatus),
-                ),
-                _buildStatusChip(
-                  'Дозвонились',
-                  _getCallStatusText(_currentStudent.callStatus),
-                  _getCallStatusColor(_currentStudent.callStatus),
-                ),
-                _buildStatusChip(
-                  'Решение',
-                  _getDecisionStatusText(_currentStudent.decisionStatus),
-                  _getDecisionStatusColor(_currentStudent.decisionStatus),
-                ),
-                _buildStatusChip(
-                  'Общий статус',
-                  _currentStudent.statusText,
-                  _currentStudent.status == 'active' ? successGreen : neutralGray,
-                ),
-                _buildStatusChip(
-                  'Статус контакта',
-                  _getContactStatusText(_currentStudent.contactStatus),
-                  Colors.blue,
-                ),
-                _buildStatusChip(
-                  'Согласие',
-                  _getYesNo(_currentStudent.consentStatus),
-                  _currentStudent.consentStatus == true ? successGreen : errorRed,
-                ),
+                _buildStatusChip('Статус документов', _getDocumentsStatusText(_currentStudent.documentsStatus), _getDocumentsStatusColor(_currentStudent.documentsStatus)),
+                _buildStatusChip('Был на сборе', _getMeetingStatusText(_currentStudent.meetingStatus), _getMeetingStatusColor(_currentStudent.meetingStatus)),
+                _buildStatusChip('Дозвонились', _getCallStatusText(_currentStudent.callStatus), _getCallStatusColor(_currentStudent.callStatus)),
+                _buildStatusChip('Решение', _getDecisionStatusText(_currentStudent.decisionStatus), _getDecisionStatusColor(_currentStudent.decisionStatus)),
+                _buildStatusChip('Общий статус', _currentStudent.statusText, _currentStudent.status == 'active' ? successGreen : _currentStudent.status == 'enrolled' ? accentBlue : neutralGray),
+                _buildStatusChip('Статус контакта', _getContactStatusText(_currentStudent.contactStatus), Colors.blue),
+                _buildStatusChip('Согласие', _getYesNo(_currentStudent.consentStatus), _currentStudent.consentStatus == true ? successGreen : errorRed),
               ],
             ),
           ],
@@ -707,15 +756,9 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color),
-          ),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: color)),
         ],
       ),
     );
@@ -727,7 +770,6 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     final hasTelegramInAdditional = _currentStudent.additionalContacts?.containsKey('telegram') == true &&
                                      _currentStudent.additionalContacts!['telegram']!.isNotEmpty;
     final priorContact = _currentStudent.priorContact;
-    
     String priorContactDisplay = _getPriorContactDisplayName(priorContact);
     
     return Card(
@@ -741,10 +783,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Контактная информация',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentBlue),
-            ),
+            const Text('Контактная информация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentBlue)),
             const SizedBox(height: 16),
             _buildInfoRow('Телефон', _currentStudent.displayPhone, Icons.phone, onTap: _currentStudent.phone.isNotEmpty ? _handleCall : null),
             const Divider(),
@@ -758,13 +797,17 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (priorContact != null && (priorContact.toLowerCase() == 'phone' || priorContact.toLowerCase() == 'звонок') || _currentStudent.phone.isNotEmpty)
+                // Кнопка звонка
+                if (_currentStudent.phone.isNotEmpty)
                   _buildActionButton('Позвонить', Icons.call, successGreen, _handleCall),
-                if (priorContact != null && (priorContact.toLowerCase() == 'messages' || priorContact.toLowerCase() == 'просто сообщения') || _currentStudent.phone.isNotEmpty)
-                  _buildActionButton('Написать', Icons.message, accentBlue, () => ContactService.messageStudent(_currentStudent.phone)),
-                if (priorContact != null && (priorContact.toLowerCase() == 'telegram' || priorContact.toLowerCase() == 'телеграмм') || hasTelegramInAdditional)
+                // Кнопка SMS
+                if (_currentStudent.phone.isNotEmpty)
+                  _buildActionButton('SMS', Icons.message, accentBlue, _handleSms),
+                // Кнопка Telegram - ВСЕГДА доступна если есть телефон
+                if (hasTelegramInAdditional || _currentStudent.phone.isNotEmpty)
                   _buildActionButton('Telegram', Icons.telegram, const Color(0xFF26A5E4), _handleTelegram),
-                if (priorContact != null && (priorContact.toLowerCase() == 'url' || priorContact.toLowerCase() == 'ссылка') || hasUrl)
+                // Кнопка ссылки
+                if (hasUrl)
                   _buildActionButton('Ссылка', Icons.link, Colors.purple, _handleUrl),
               ],
             ),
@@ -791,8 +834,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
               ],
             ),
           ),
-          if (onTap != null)
-            const Icon(Icons.chevron_right, color: Colors.grey),
+          if (onTap != null) const Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
     );
@@ -809,35 +851,46 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
           Wrap(
             spacing: 8,
             runSpacing: 4,
-            children: _currentStudent.additionalContacts!.entries.map((entry) {
-              IconData icon;
-              Color color;
-              VoidCallback? onTap;
-              switch (entry.key) {
-                case 'telegram':
-                  icon = Icons.telegram;
-                  color = const Color(0xFF26A5E4);
-                  onTap = _handleTelegram;
-                  break;
-                case 'url':
-                  icon = Icons.link;
-                  color = Colors.purple;
-                  onTap = _handleUrl;
-                  break;
-                default:
-                  icon = Icons.contact_phone;
-                  color = Colors.orange;
-                  onTap = null;
-              }
-              return GestureDetector(
-                onTap: onTap,
+            children: [
+              // Telegram всегда показываем, даже если не в дополнительных контактах
+              GestureDetector(
+                onTap: _handleTelegram,
                 child: Chip(
-                  avatar: Icon(icon, size: 16, color: color),
-                  label: Text('${entry.key}: ${entry.value}'),
+                  avatar: const Icon(Icons.telegram, size: 16, color: Color(0xFF26A5E4)),
+                  label: Text(
+                    _currentStudent.additionalContacts?['telegram'] != null 
+                        ? 'Telegram: ${_currentStudent.additionalContacts!['telegram']}'
+                        : 'Telegram (по номеру телефона)',
+                  ),
                   backgroundColor: Colors.grey.shade200,
                 ),
-              );
-            }).toList(),
+              ),
+              // Остальные дополнительные контакты
+              ..._currentStudent.additionalContacts!.entries.where((entry) => entry.key != 'telegram').map((entry) {
+                IconData icon;
+                Color color;
+                VoidCallback? onTap;
+                switch (entry.key) {
+                  case 'url':
+                    icon = Icons.link;
+                    color = Colors.purple;
+                    onTap = _handleUrl;
+                    break;
+                  default:
+                    icon = Icons.contact_phone;
+                    color = Colors.orange;
+                    onTap = null;
+                }
+                return GestureDetector(
+                  onTap: onTap,
+                  child: Chip(
+                    avatar: Icon(icon, size: 16, color: color),
+                    label: Text('${entry.key}: ${entry.value}'),
+                    backgroundColor: Colors.grey.shade200,
+                  ),
+                );
+              }).toList(),
+            ],
           ),
         ],
       ),
@@ -863,18 +916,13 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     if (_loadingApplications) {
       return const Center(child: CircularProgressIndicator());
     }
-    
     if (_applications.isEmpty) {
       return const SizedBox.shrink();
     }
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Заявки на специальности',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentBlue),
-        ),
+        const Text('Заявки на специальности', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentBlue)),
         const SizedBox(height: 12),
         ..._applications.map((app) => _buildApplicationCard(app)),
       ],
@@ -891,10 +939,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     final isPaid = studyBasis == 'платная';
     final isTarget = studyBasis == 'целевая';
     
-    int placesTotal = 0;
-    int placesFilled = 0;
-    int applicantsWithConsent = 0;
-    
+    int placesTotal = 0, placesFilled = 0, applicantsWithConsent = 0;
     if (isBudget && groupStat != null) {
       placesTotal = groupStat.budget.total;
       placesFilled = groupStat.budget.filled;
@@ -912,18 +957,12 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: borderColor, width: 1),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: borderColor, width: 1)),
       child: Column(
         children: [
           ListTile(
             contentPadding: const EdgeInsets.all(12),
-            title: Text(
-              app.specialityName ?? 'Без названия',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: accentBlue),
-            ),
+            title: Text(app.specialityName ?? 'Без названия', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: accentBlue)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -937,28 +976,17 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                     _buildChip('Место: ${app.position ?? '—'}', Colors.blue),
                     _buildChip('Баллы: ${app.totalScore ?? '—'}', successGreen),
                     _buildChip(_getApplicationStatusText(app.applicationStatus), _getApplicationStatusColor(app.applicationStatus)),
-                    if (app.studyForm != null && app.studyForm!.isNotEmpty)
-                      _buildChip(app.studyForm!, warningOrange),
-                    if (app.studyBasis != null && app.studyBasis!.isNotEmpty)
-                      _buildChip(
-                        app.studyBasis!,
-                        isBudget ? successGreen : isPaid ? warningOrange : Colors.purple,
-                      ),
+                    if (app.studyForm != null && app.studyForm!.isNotEmpty) _buildChip(app.studyForm!, warningOrange),
+                    if (app.studyBasis != null && app.studyBasis!.isNotEmpty) _buildChip(app.studyBasis!, isBudget ? successGreen : isPaid ? warningOrange : Colors.purple),
                   ],
                 ),
               ],
             ),
-            trailing: Icon(
-              isExpanded ? Icons.expand_less : Icons.expand_more,
-              color: accentBlue,
-            ),
+            trailing: Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: accentBlue),
             onTap: () => _onApplicationTap(app),
           ),
           if (isExpanded && _loadingCompetitive)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
+            const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
           if (isExpanded && !_loadingCompetitive && groupStat != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -967,16 +995,10 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                 children: [
                   const Divider(),
                   const SizedBox(height: 12),
-                  _buildStatRow(
-                    'Место в конкурсе',
-                    '${app.position ?? '—'} из ${groupStat.totalApplications}',
-                  ),
+                  _buildStatRow('Место в конкурсе', '${app.position ?? '—'} из ${groupStat.totalApplications}'),
                   if (placesTotal > 0) ...[
                     const SizedBox(height: 8),
-                    _buildStatRow(
-                      isBudget ? 'Бюджетных мест' : isPaid ? 'Платных мест' : 'Целевых мест',
-                      '$placesFilled / $placesTotal',
-                    ),
+                    _buildStatRow(isBudget ? 'Бюджетных мест' : isPaid ? 'Платных мест' : 'Целевых мест', '$placesFilled / $placesTotal'),
                     const SizedBox(height: 8),
                     _buildStatRow('Конкурс', '${groupStat.competition.toStringAsFixed(2)} чел/место'),
                   ],
@@ -1005,14 +1027,8 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
   Widget _buildChip(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500),
-      ),
+      decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+      child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
     );
   }
 
@@ -1021,10 +1037,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       ],
     );
   }
@@ -1033,10 +1046,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'История коммуникаций',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentBlue),
-        ),
+        const Text('История коммуникаций', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentBlue)),
         const SizedBox(height: 12),
         if (_loadingCommunications)
           const Center(child: CircularProgressIndicator())
@@ -1056,7 +1066,10 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
         else
           Column(
             children: [
-              ..._communications.map((comm) => _buildCommunicationCard(comm)),
+              ..._communications.map((comm) => GestureDetector(
+                onTap: () => _editCommunication(comm),
+                child: _buildCommunicationCard(comm),
+              )),
               const SizedBox(height: 80),
             ],
           ),
@@ -1080,11 +1093,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
             CircleAvatar(
               radius: 24,
               backgroundColor: _getCommTypeColor(comm.communicationType).withOpacity(0.2),
-              child: Icon(
-                _getCommTypeIcon(comm.communicationType),
-                color: _getCommTypeColor(comm.communicationType),
-                size: 24,
-              ),
+              child: Icon(_getCommTypeIcon(comm.communicationType), color: _getCommTypeColor(comm.communicationType), size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1093,10 +1102,7 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        comm.typeDisplayName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+                      Text(comm.typeDisplayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1104,48 +1110,32 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                           color: _getStatusColor(comm.status).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(
-                          comm.statusDisplayName,
-                          style: TextStyle(fontSize: 10, color: _getStatusColor(comm.status)),
-                        ),
+                        child: Text(comm.statusDisplayName, style: TextStyle(fontSize: 10, color: _getStatusColor(comm.status))),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    comm.notes,
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(comm.notes, style: const TextStyle(fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(Icons.access_time, size: 12, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
-                      Text(
-                        _formatDateTime(comm.dateTime),
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                      ),
+                      Text(_formatDateTime(comm.dateTime), style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                       if (comm.durationMinutes != null) ...[
                         const SizedBox(width: 12),
                         Icon(Icons.timer, size: 12, color: Colors.grey.shade500),
                         const SizedBox(width: 4),
-                        Text(
-                          '${comm.durationMinutes} мин',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                        ),
+                        Text('${comm.durationMinutes} мин', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                       ],
                     ],
                   ),
                   if (comm.createdByName != null)
-                    Text(
-                      'Создал: ${comm.createdByName}',
-                      style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-                    ),
+                    Text('Создал: ${comm.createdByName}', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
                 ],
               ),
             ),
+            const Icon(Icons.edit, size: 20, color: Colors.grey),
           ],
         ),
       ),
@@ -1186,7 +1176,9 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
         builder: (context) => AddCommunicationPage(
           studentId: _currentStudent.id,
           studentName: _currentStudent.fullName,
-          onAdd: _addCommunication,
+          onSuccess: () {
+            _loadCommunications();
+          },
         ),
       ),
     );

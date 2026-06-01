@@ -10,14 +10,21 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # ТОЛЬКО ЭТОТ ПАКЕТ
+  # Минимально необходимые пакеты
   url_launcher: ^6.1.0
   http: ^1.1.0
   shared_preferences: ^2.2.2
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^9.0.0
   provider: ^6.0.5
-  intl: ^0.18.1
-  flutter_dotenv: ^5.1.0
+  web_socket_channel: ^2.4.0
+  
+  # Фоновый сервис (без уведомлений)
+  flutter_background_service: ^5.0.0
+  flutter_background_service_android: ^6.0.0
+  permission_handler: ^11.0.0 
+  android_intent_plus: ^5.1.0
+  file_selector: ^1.0.0 
+  path_provider: ^2.1.0 
 
 dev_dependencies:
   flutter_test:

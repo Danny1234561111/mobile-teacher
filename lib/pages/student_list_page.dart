@@ -15,13 +15,9 @@ const Color borderColor = Color(0xFFC5C6D0);
 const Color blackBorder = Color(0xFF000000);
 const Color greyText = Color(0xFF49454F);
 const Color successGreen = Color(0xFF34C759);
-const Color successGreenBg = Color(0x8F5CD86C);
 const Color errorRed = Color(0xFFFF383C);
-const Color errorRedBg = Color(0xFFFFABA1);
 const Color neutralGray = Color(0xFFA0A0A0);
-const Color neutralGrayBg = Color(0x8FA0A0A0);
 const Color warningOrange = Color(0xFFFF9800);
-const Color warningOrangeBg = Color(0x8FFFF9800);
 
 class StudentsListPage extends StatefulWidget {
   const StudentsListPage({super.key});
@@ -47,7 +43,6 @@ class _StudentsListPageState extends State<StudentsListPage> with WidgetsBinding
   List<Map<String, dynamic>> _specialities = [];
   List<Map<String, dynamic>> _profiles = [];
   
-  // Выбранные фильтры (множественный выбор) - используем названия профилей
   Set<String> _selectedProfileNames = {};
   Set<String> _selectedSpecialityNames = {};
   String? _selectedStatus;
@@ -92,25 +87,30 @@ class _StudentsListPageState extends State<StudentsListPage> with WidgetsBinding
   ];
   
   final List<Map<String, dynamic>> _meetingStatusOptions = [
-    {'value': 'not_met', 'label': 'Не был на сборе', 'color': errorRed, 'bgColor': errorRedBg},
-    {'value': 'met', 'label': 'Был на сборе', 'color': successGreen, 'bgColor': successGreenBg},
+    {'value': 'unknown', 'label': 'Не указано', 'color': neutralGray},
+    {'value': 'not_met', 'label': 'Не был на сборе', 'color': errorRed},
+    {'value': 'met', 'label': 'Был на сборе', 'color': successGreen},
   ];
   
   final List<Map<String, dynamic>> _callStatusOptions = [
-    {'value': 'not_reached', 'label': 'Не дозвонились', 'color': errorRed, 'bgColor': errorRedBg},
-    {'value': 'reached', 'label': 'Дозвонились', 'color': successGreen, 'bgColor': successGreenBg},
+    {'value': 'unknown', 'label': 'Не указано', 'color': neutralGray},
+    {'value': 'not_reached', 'label': 'Не дозвонились', 'color': errorRed},
+    {'value': 'reached', 'label': 'Дозвонились', 'color': successGreen},
   ];
   
   final List<Map<String, dynamic>> _decisionStatusOptions = [
-    {'value': 'thinking', 'label': 'Думает', 'color': neutralGray, 'bgColor': neutralGrayBg},
-    {'value': 'decided', 'label': 'Решил', 'color': successGreen, 'bgColor': successGreenBg},
+    {'value': 'unknown', 'label': 'Не указано', 'color': neutralGray},
+    {'value': 'thinking', 'label': 'Думает', 'color': warningOrange},
+    {'value': 'decided', 'label': 'Решил', 'color': successGreen},
+    {'value': 'denied', 'label': 'Отказано', 'color': errorRed},
   ];
   
   final List<Map<String, dynamic>> _documentsStatusOptions = [
-    {'value': 'not_submitted', 'label': 'Нет заявл.', 'color': neutralGray, 'bgColor': neutralGrayBg},
-    {'value': 'original_submitted', 'label': 'Подан оригинал', 'color': successGreen, 'bgColor': successGreenBg},
-    {'value': 'waiting_original', 'label': 'Ждем оригинал', 'color': warningOrange, 'bgColor': warningOrangeBg},
-    {'value': 'enrolled', 'label': 'Зачислен', 'color': accentBlue, 'bgColor': accentBlue.withOpacity(0.2)},
+    {'value': 'unknown', 'label': 'Не указано', 'color': neutralGray},
+    {'value': 'not_submitted', 'label': 'Нет заявл.', 'color': neutralGray},
+    {'value': 'original_submitted', 'label': 'Подан оригинал', 'color': successGreen},
+    {'value': 'waiting_original', 'label': 'Ждем оригинал', 'color': warningOrange},
+    {'value': 'enrolled', 'label': 'Зачислен', 'color': accentBlue},
   ];
   
   final List<Map<String, dynamic>> _studyFormOptions = [
@@ -125,19 +125,91 @@ class _StudentsListPageState extends State<StudentsListPage> with WidgetsBinding
     {'value': 'Целевая', 'label': 'Целевая'},
   ];
 
-  Set<String> get _allSpecialityNames {
-  final names = <String>{};
-  for (var applications in _studentApplications.values) {
-    for (var app in applications) {
-      if (app.specialityName != null && app.specialityName!.isNotEmpty) {
-        names.add(app.specialityName!);
-      }
+  String _getMeetingStatusLabel(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'met': return 'Был на сборе';
+      case 'not_met': return 'Не был на сборе';
+      case 'unknown': return 'Не указано';
+      default: return 'Не указано';
     }
   }
-  return names;
-}
 
-  // Уникальные названия профилей из заявлений всех студентов
+  Color _getMeetingStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'met': return successGreen;
+      case 'not_met': return errorRed;
+      default: return neutralGray;
+    }
+  }
+
+  String _getCallStatusLabel(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'reached': return 'Дозвонились';
+      case 'not_reached': return 'Не дозвонились';
+      case 'unknown': return 'Не указано';
+      default: return 'Не указано';
+    }
+  }
+
+  Color _getCallStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'reached': return successGreen;
+      case 'not_reached': return errorRed;
+      default: return neutralGray;
+    }
+  }
+
+  String _getDecisionStatusLabel(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'decided': return 'Решил';
+      case 'thinking': return 'Думает';
+      case 'denied': return 'Отказано';
+      case 'unknown': return 'Не указано';
+      default: return 'Не указано';
+    }
+  }
+
+  Color _getDecisionStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'decided': return successGreen;
+      case 'thinking': return warningOrange;
+      case 'denied': return errorRed;
+      default: return neutralGray;
+    }
+  }
+
+  String _getDocumentsStatusLabel(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'original_submitted': return 'Подан оригинал';
+      case 'waiting_original': return 'Ждем оригинал';
+      case 'enrolled': return 'Зачислен';
+      case 'not_submitted': return 'Нет заявл.';
+      case 'unknown': return 'Не указано';
+      default: return 'Не указано';
+    }
+  }
+
+  Color _getDocumentsStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'original_submitted': return successGreen;
+      case 'waiting_original': return warningOrange;
+      case 'enrolled': return accentBlue;
+      default: return neutralGray;
+    }
+  }
+
+  Set<String> get _allSpecialityNames {
+    final names = <String>{};
+    for (var applications in _studentApplications.values) {
+      for (var app in applications) {
+        if (app.specialityName != null && app.specialityName!.isNotEmpty) {
+          names.add(app.specialityName!);
+        }
+      }
+    }
+    return names;
+  }
+
   Set<String> get _allProfileNames {
     final names = <String>{};
     for (var applications in _studentApplications.values) {
@@ -168,134 +240,110 @@ class _StudentsListPageState extends State<StudentsListPage> with WidgetsBinding
     return mapping[priorContact] ?? '';
   }
 
-  // Замени существующий метод _getPriorContactIcon на этот:
-Widget _getPriorContactIconWidget(String? priorContact) {
-  if (priorContact == null || priorContact.isEmpty) {
-    return const Icon(Icons.help_outline, size: 28, color: Colors.grey);
-  }
-  
-  final contactType = _getContactTypeFromPrior(priorContact);
-  switch (contactType) {
-  case 'telegram':
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(
-          'assets/icons/telegram.png',
-          width: 28,
-          height: 28,
-          errorBuilder: (context, error, stackTrace) => 
-              const Icon(Icons.telegram, size: 28, color: Color(0xFF26A5E4)),
-        ),
-        const SizedBox(width: 25),
-      ],
-    );
-  case 'sms':
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(
-          'assets/icons/sms.png',
+  Widget _getPriorContactIconWidget(String? priorContact) {
+    if (priorContact == null || priorContact.isEmpty) {
+      return const SizedBox(width: 36, height: 36);
+    }
+    
+    final contactType = _getContactTypeFromPrior(priorContact);
+    switch (contactType) {
+      case 'telegram':
+        return Container(
           width: 36,
           height: 36,
-          errorBuilder: (context, error, stackTrace) => 
-              const Icon(Icons.sms, size: 28, color: Colors.blue),
-        ),
-        const SizedBox(width: 25),
-      ],
-    );
-  case 'call':
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(
-          'assets/icons/phone.png',
-          width: 28,
-          height: 28,
-          errorBuilder: (context, error, stackTrace) => 
-              const Icon(Icons.phone, size: 28, color: Colors.green),
-        ),
-        const SizedBox(width: 25),
-      ],
-    );
-  case 'url':
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(
-          'assets/icons/link2.png',
-          width: 32,
-          height: 32,
-          errorBuilder: (context, error, stackTrace) => 
-              const Icon(Icons.link, size: 28, color: Colors.purple),
-        ),
-        const SizedBox(width: 25),
-      ],
-    );
-  default:
-    return const Icon(Icons.contact_phone, size: 28, color: Colors.grey);
-}
-}
-
-  Color _getPriorContactColor(String? priorContact) {
-    if (priorContact == null || priorContact.isEmpty) return Colors.grey;
-    final mapping = {
-      'TELEGRAM': const Color(0xFF26A5E4),
-      'MESSAGES': const Color(0xFF2196F3),
-      'PHONE': const Color(0xFF4CAF50),
-      'URL': const Color(0xFF9C27B0),
-      'телеграмм': const Color(0xFF26A5E4),
-      'telegram': const Color(0xFF26A5E4),
-      'просто сообщения': const Color(0xFF2196F3),
-      'messages': const Color(0xFF2196F3),
-      'звонок': const Color(0xFF4CAF50),
-      'phone': const Color(0xFF4CAF50),
-      'ссылка': const Color(0xFF9C27B0),
-    };
-    return mapping[priorContact] ?? Colors.purple;
-  }
-
-  String _getPriorContactDisplayName(String? priorContact) {
-    if (priorContact == null || priorContact.isEmpty) return 'Контакт';
-    final mapping = {
-      'TELEGRAM': 'Telegram',
-      'MESSAGES': 'SMS',
-      'PHONE': 'Звонок',
-      'URL': 'Ссылка',
-      'телеграмм': 'Telegram',
-      'telegram': 'Telegram',
-      'просто сообщения': 'SMS',
-      'messages': 'SMS',
-      'звонок': 'Звонок',
-      'phone': 'Звонок',
-      'ссылка': 'Ссылка',
-    };
-    return mapping[priorContact] ?? 'Контакт';
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF26A5E4).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Image.asset(
+            'assets/icons/telegram.png',
+            width: 24,
+            height: 24,
+            errorBuilder: (context, error, stackTrace) => 
+                const Icon(Icons.telegram, size: 24, color: Color(0xFF26A5E4)),
+          ),
+        );
+      case 'sms':
+        return Container(
+          width: 36,
+          height: 36,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Image.asset(
+            'assets/icons/sms.png',
+            width: 24,
+            height: 24,
+            errorBuilder: (context, error, stackTrace) => 
+                const Icon(Icons.sms, size: 24, color: Colors.blue),
+          ),
+        );
+      case 'call':
+        return Container(
+          width: 36,
+          height: 36,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Image.asset(
+            'assets/icons/phone.png',
+            width: 24,
+            height: 24,
+            errorBuilder: (context, error, stackTrace) => 
+                const Icon(Icons.phone, size: 24, color: Colors.green),
+          ),
+        );
+      case 'url':
+        return Container(
+          width: 36,
+          height: 36,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.purple.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Image.asset(
+            'assets/icons/link2.png',
+            width: 24,
+            height: 24,
+            errorBuilder: (context, error, stackTrace) => 
+                const Icon(Icons.link, size: 24, color: Colors.purple),
+          ),
+        );
+      default:
+        return const SizedBox(width: 36, height: 36);
+    }
   }
 
   Future<void> _loadActiveContact() async {
-  try {
-    final activeContact = await _studentService.getActiveContact();
-    if (mounted) {
-      setState(() {
-        if (activeContact != null && activeContact['contact_type'] != null) {
-          _activeContact = {
-            'type': activeContact['contact_type'].toString().toLowerCase(),
-            'value': activeContact['contact_value'].toString(),
-          };
-        } else {
+    try {
+      final activeContact = await _studentService.getActiveContact();
+      if (mounted) {
+        setState(() {
+          if (activeContact != null && activeContact['contact_type'] != null) {
+            _activeContact = {
+              'type': activeContact['contact_type'].toString().toLowerCase(),
+              'value': activeContact['contact_value'].toString(),
+            };
+          } else {
+            _activeContact = null;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
           _activeContact = null;
-        }
-      });
-    }
-  } catch (e) {
-    if (mounted) {
-      setState(() {
-        _activeContact = null;
-      });
+        });
+      }
     }
   }
-}
+
   Future<void> _refreshAllData() async {
     await _loadActiveContact();
     await _loadStudents();
@@ -413,7 +461,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
   void _applyFiltersAndSort() {
     List<Student> result = List.from(students);
     
-    // Поиск
     if (_searchController.text.isNotEmpty) {
       final query = _searchController.text.toLowerCase();
       result = result.where((student) {
@@ -423,7 +470,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
       }).toList();
     }
     
-    // Фильтр по профилям (по НАЗВАНИЯМ)
     if (_selectedProfileNames.isNotEmpty) {
       result = result.where((student) {
         final applications = _studentApplications[student.id];
@@ -433,7 +479,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
       }).toList();
     }
     
-    // Фильтр по специальностям
     if (_selectedSpecialityNames.isNotEmpty) {
       result = result.where((student) {
         final applications = _studentApplications[student.id];
@@ -443,13 +488,11 @@ Widget _getPriorContactIconWidget(String? priorContact) {
       }).toList();
     }
     
-    // Фильтр по статусу
     if (_selectedStatus != null) {
       result = result.where((student) => 
           student.status?.toLowerCase() == _selectedStatus).toList();
     }
     
-    // Фильтр по статусу заявления
     if (_selectedApplicationStatus != null) {
       result = result.where((student) {
         final applications = _studentApplications[student.id];
@@ -459,61 +502,51 @@ Widget _getPriorContactIconWidget(String? priorContact) {
       }).toList();
     }
     
-    // Фильтр по статусу контакта
     if (_selectedContactStatus != null) {
       result = result.where((student) => 
           student.contactStatus?.toLowerCase() == _selectedContactStatus).toList();
     }
     
-    // Фильтр по статусу встречи
     if (_selectedMeetingStatus != null) {
       result = result.where((student) => 
-          student.meetingStatus?.toLowerCase() == _selectedMeetingStatus).toList();
+          (student.meetingStatus?.toLowerCase() ?? 'unknown') == _selectedMeetingStatus).toList();
     }
     
-    // Фильтр по статусу звонка
     if (_selectedCallStatus != null) {
       result = result.where((student) => 
-          student.callStatus?.toLowerCase() == _selectedCallStatus).toList();
+          (student.callStatus?.toLowerCase() ?? 'unknown') == _selectedCallStatus).toList();
     }
     
-    // Фильтр по решению
     if (_selectedDecisionStatus != null) {
       result = result.where((student) => 
-          student.decisionStatus?.toLowerCase() == _selectedDecisionStatus).toList();
+          (student.decisionStatus?.toLowerCase() ?? 'unknown') == _selectedDecisionStatus).toList();
     }
     
-    // Фильтр по статусу документов
     if (_selectedDocumentsStatus != null) {
       result = result.where((student) => 
-          student.documentsStatus?.toLowerCase() == _selectedDocumentsStatus).toList();
+          (student.documentsStatus?.toLowerCase() ?? 'unknown') == _selectedDocumentsStatus).toList();
     }
     
-    // Фильтр по направлению
     if (_selectedDepartmentId != null) {
       result = result.where((student) => 
           student.departmentId == _selectedDepartmentId).toList();
     }
     
-    // Фильтр по форме обучения
     if (_selectedStudyForm != null) {
       result = result.where((student) => 
           student.studyForm == _selectedStudyForm).toList();
     }
     
-    // Фильтр по основе обучения
     if (_selectedStudyBasis != null) {
       result = result.where((student) => 
           student.studyBasis == _selectedStudyBasis).toList();
     }
     
-    // Фильтр по согласию
     if (_selectedConsentStatus != null) {
       result = result.where((student) => 
           student.consentStatus == _selectedConsentStatus).toList();
     }
     
-    // Сортировка
     result.sort((a, b) {
       int comparison;
       switch (_sortBy) {
@@ -670,9 +703,9 @@ Widget _getPriorContactIconWidget(String? priorContact) {
             return Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 20,
+                left: 16,
+                right: 16,
+                top: 16,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -695,7 +728,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       children: [
                         const Text(
                           'Фильтры и сортировка',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         TextButton(
                           onPressed: () {
@@ -722,10 +755,9 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     
-                    // Сортировка
-                    const Text('Сортировка', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('Сортировка', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
@@ -792,9 +824,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       ),
                     ),
                     
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     
-                    // Профили (множественный выбор по названиям)
                     if (allProfileNames.isNotEmpty)
                       _buildMultiSelectFilter(
                         title: 'Профили обучения',
@@ -815,17 +846,16 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                         },
                       ),
                     
-                    if (allProfileNames.isNotEmpty) const SizedBox(height: 16),
+                    if (allProfileNames.isNotEmpty) const SizedBox(height: 12),
                     
-                    // Специальности
                     if (_allSpecialityNames.isNotEmpty)
                       _buildMultiSelectFilter(
                         title: 'Специальности',
-                        options: _allSpecialityNames.map((name) => {
+                        options: _allSpecialityNames.map((name) => ({
                           'value': name,
                           'label': name,
                           'color': Colors.purple,
-                        }).toList(),
+                        })).toList(),
                         selectedValues: tempSpecialityNames,
                         onChanged: (value, selected) {
                           setModalState(() {
@@ -838,9 +868,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                         },
                       ),
                     
-                    if (_allSpecialityNames.isNotEmpty) const SizedBox(height: 16),
+                    if (_allSpecialityNames.isNotEmpty) const SizedBox(height: 12),
                     
-                    // Статус абитуриента
                     _buildFilterSelect(
                       title: 'Статус абитуриента',
                       value: tempStatus,
@@ -855,9 +884,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     
-                    // Статус заявления
                     _buildFilterSelect(
                       title: 'Статус заявления',
                       value: tempApplicationStatus,
@@ -872,9 +900,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     
-                    // Статус контакта
                     _buildFilterSelect(
                       title: 'Статус контакта',
                       value: tempContactStatus,
@@ -889,9 +916,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     
-                    // Был на сборе
                     _buildFilterSelect(
                       title: 'Был на сборе',
                       value: tempMeetingStatus,
@@ -908,7 +934,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                     
                     const SizedBox(height: 12),
                     
-                    // Дозвонились
                     _buildFilterSelect(
                       title: 'Дозвонились',
                       value: tempCallStatus,
@@ -925,7 +950,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                     
                     const SizedBox(height: 12),
                     
-                    // Решение
                     _buildFilterSelect(
                       title: 'Решение',
                       value: tempDecisionStatus,
@@ -942,7 +966,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                     
                     const SizedBox(height: 12),
                     
-                    // Статус документов
                     _buildFilterSelect(
                       title: 'Статус документов',
                       value: tempDocumentsStatus,
@@ -957,9 +980,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     
-                    // Направление
                     _buildFilterSelect(
                       title: 'Направление',
                       value: tempDepartmentId,
@@ -977,9 +999,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     
-                    // Форма обучения
                     _buildFilterSelect(
                       title: 'Форма обучения',
                       value: tempStudyForm,
@@ -994,9 +1015,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     
-                    // Основа обучения
                     _buildFilterSelect(
                       title: 'Основа обучения',
                       value: tempStudyBasis,
@@ -1011,9 +1031,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     
-                    // Согласие
                     _buildFilterSelect(
                       title: 'Согласие',
                       value: tempConsentStatus,
@@ -1029,7 +1048,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                       },
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     SizedBox(
                       width: double.infinity,
@@ -1089,8 +1108,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
         Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: [
             FilterChip(
               label: const Text('Все'),
@@ -1110,7 +1129,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
               final value = opt['value'].toString();
               final isSelected = selectedValues.contains(value);
               return FilterChip(
-                label: Text(opt['label']),
+                label: Text(opt['label'], style: const TextStyle(fontSize: 12)),
                 selected: isSelected,
                 onSelected: (selected) => onChanged(value, selected),
                 backgroundColor: Colors.grey.shade200,
@@ -1192,16 +1211,6 @@ Widget _getPriorContactIconWidget(String? priorContact) {
     }
   }
 
-  String getApplicationStatusText(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending': return 'Ожидает';
-      case 'accepted': return 'Принято';
-      case 'rejected': return 'Отклонено';
-      case 'paid': return 'Оплачено';
-      default: return status ?? '—';
-    }
-  }
-
   String _getApplicationStatusDisplayName(String? status) {
     switch (status?.toLowerCase()) {
       case 'pending': return 'Ожидает';
@@ -1258,7 +1267,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
     required VoidCallback onDelete,
   }) {
     return Container(
-      margin: const EdgeInsets.only(right: 8, bottom: 8),
+      margin: const EdgeInsets.only(right: 6, bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
@@ -1269,8 +1278,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: 6,
+            height: 6,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
@@ -1279,12 +1288,12 @@ Widget _getPriorContactIconWidget(String? priorContact) {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: color),
+            style: TextStyle(fontSize: 11, color: color),
           ),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: onDelete,
-            child: Icon(Icons.close, size: 14, color: color),
+            child: Icon(Icons.close, size: 12, color: color),
           ),
         ],
       ),
@@ -1318,50 +1327,43 @@ Widget _getPriorContactIconWidget(String? priorContact) {
           'Абитуриенты',
           style: TextStyle(
             color: accentBlue,
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
         elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(0.6),
-          child: Container(
-            height: 0.6,
-            color: blackBorder,
-          ),
-        ),
+        backgroundColor: Colors.white,
+        automaticallyImplyLeading: false,
         actions: [
           if (_activeContact != null)
-                GestureDetector(
-      onTap: () async {
-        final contactType = _activeContact!['type']?.toLowerCase() ?? '';
-        final contactValue = _activeContact!['value'] ?? '';
-        
-        // Используем ContactService как в карточке студента
-            switch (contactType) {
-              case 'telegram':
-                await ContactService.openTelegram(contactValue, 'Активный контакт');
-                break;
-              case 'url':
-                await ContactService.openUrl(contactValue);
-                break;
-              case 'call':
-                await ContactService.makeCall(contactValue);
-                break;
-              case 'sms':
-                await ContactService.sendSms(contactValue);
-                break;
-              default:
-                print('Неизвестный тип контакта: $contactType');
-            }
-          },
+            GestureDetector(
+              onTap: () async {
+                final contactType = _activeContact!['type']?.toLowerCase() ?? '';
+                final contactValue = _activeContact!['value'] ?? '';
+                switch (contactType) {
+                  case 'telegram':
+                    await ContactService.openTelegram(contactValue, 'Активный контакт');
+                    break;
+                  case 'url':
+                    await ContactService.openUrl(contactValue);
+                    break;
+                  case 'call':
+                    await ContactService.makeCall(contactValue);
+                    break;
+                  case 'sms':
+                    await ContactService.sendSms(contactValue);
+                    break;
+                  default:
+                    print('Неизвестный тип контакта: $contactType');
+                }
+              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Image.asset(
                   'assets/icons/link.png',
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                 ),
               ),
             ),
@@ -1379,8 +1381,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
               },
               child: Image.asset(
                 'assets/icons/parse2.png',
-                width: 28,
-                height: 28,
+                width: 26,
+                height: 26,
               ),
             ),
           ),
@@ -1395,8 +1397,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
               },
               child: Image.asset(
                 'assets/icons/profile3.png',
-                width: 28,
-                height: 28,
+                width: 26,
+                height: 26,
               ),
             ),
           ),
@@ -1424,7 +1426,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
               : Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: blackBorder, width: 0.6),
@@ -1434,7 +1436,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                           controller: _searchController,
                           decoration: InputDecoration(
                             hintText: 'Поиск по ФИО, телефону, ID',
-                            hintStyle: const TextStyle(color: greyText),
+                            hintStyle: const TextStyle(color: greyText, fontSize: 14),
                             prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
                             suffixIcon: Stack(
                               children: [
@@ -1464,7 +1466,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                               ],
                             ),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
                           onChanged: (value) => _applyFiltersAndSort(),
                         ),
@@ -1472,7 +1474,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                     ),
                     
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -1514,12 +1516,12 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                     
                     if (hasActiveFilters)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                            spacing: 6,
+                            runSpacing: 6,
                             children: [
                               if (_selectedProfileNames.isNotEmpty)
                                 _buildActiveFilterChip(
@@ -1578,8 +1580,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                                 ),
                               if (_selectedMeetingStatus != null)
                                 _buildActiveFilterChip(
-                                  label: 'Встреча: ${_meetingStatusOptions.firstWhere((o) => o['value'] == _selectedMeetingStatus)['label']}',
-                                  color: _meetingStatusOptions.firstWhere((o) => o['value'] == _selectedMeetingStatus)['color'],
+                                  label: 'Встреча: ${_getMeetingStatusLabel(_selectedMeetingStatus)}',
+                                  color: _getMeetingStatusColor(_selectedMeetingStatus),
                                   onDelete: () {
                                     setState(() {
                                       _selectedMeetingStatus = null;
@@ -1589,8 +1591,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                                 ),
                               if (_selectedCallStatus != null)
                                 _buildActiveFilterChip(
-                                  label: 'Дозвон: ${_callStatusOptions.firstWhere((o) => o['value'] == _selectedCallStatus)['label']}',
-                                  color: _callStatusOptions.firstWhere((o) => o['value'] == _selectedCallStatus)['color'],
+                                  label: 'Дозвон: ${_getCallStatusLabel(_selectedCallStatus)}',
+                                  color: _getCallStatusColor(_selectedCallStatus),
                                   onDelete: () {
                                     setState(() {
                                       _selectedCallStatus = null;
@@ -1600,8 +1602,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                                 ),
                               if (_selectedDecisionStatus != null)
                                 _buildActiveFilterChip(
-                                  label: 'Решение: ${_decisionStatusOptions.firstWhere((o) => o['value'] == _selectedDecisionStatus)['label']}',
-                                  color: _decisionStatusOptions.firstWhere((o) => o['value'] == _selectedDecisionStatus)['color'],
+                                  label: 'Решение: ${_getDecisionStatusLabel(_selectedDecisionStatus)}',
+                                  color: _getDecisionStatusColor(_selectedDecisionStatus),
                                   onDelete: () {
                                     setState(() {
                                       _selectedDecisionStatus = null;
@@ -1611,8 +1613,8 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                                 ),
                               if (_selectedDocumentsStatus != null)
                                 _buildActiveFilterChip(
-                                  label: 'Документы: ${_documentsStatusOptions.firstWhere((o) => o['value'] == _selectedDocumentsStatus)['label']}',
-                                  color: _documentsStatusOptions.firstWhere((o) => o['value'] == _selectedDocumentsStatus)['color'],
+                                  label: 'Документы: ${_getDocumentsStatusLabel(_selectedDocumentsStatus)}',
+                                  color: _getDocumentsStatusColor(_selectedDocumentsStatus),
                                   onDelete: () {
                                     setState(() {
                                       _selectedDocumentsStatus = null;
@@ -1671,7 +1673,7 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                                   minimumSize: Size.zero,
                                   foregroundColor: accentBlue,
                                 ),
-                                child: const Text('Очистить все'),
+                                child: const Text('Очистить все', style: TextStyle(fontSize: 11)),
                               ),
                             ],
                           ),
@@ -1686,15 +1688,15 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.people_outline, size: 80, color: Colors.grey.shade400),
-                                  const SizedBox(height: 20),
-                                  const Text('Студенты не найдены', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                                  Icon(Icons.people_outline, size: 60, color: Colors.grey.shade400),
+                                  const SizedBox(height: 16),
+                                  const Text('Студенты не найдены', style: TextStyle(fontSize: 16, color: Colors.grey)),
                                   if (hasActiveFilters)
                                     Column(
                                       children: [
-                                        const SizedBox(height: 10),
-                                        const Text('Попробуйте изменить фильтры', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                                        const SizedBox(height: 10),
+                                        const SizedBox(height: 8),
+                                        const Text('Попробуйте изменить фильтры', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                                        const SizedBox(height: 8),
                                         ElevatedButton(
                                           onPressed: _clearFilters,
                                           style: ElevatedButton.styleFrom(backgroundColor: accentBlue),
@@ -1708,60 +1710,80 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                           : RefreshIndicator(
                               onRefresh: _refreshStudents,
                               child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                                padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                                 itemCount: paginatedStudents.length,
                                 itemBuilder: (context, index) => _buildStudentCard(paginatedStudents[index]),
                               ),
                             ),
                     ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 0, bottom: 45),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.first_page),
-                              onPressed: _page > 0 ? () {
-                                setState(() {
-                                  _page = 0;
-                                });
-                              } : null,
+                    
+                    // Пагинация
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: borderColor, width: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.first_page, size: 20),
+                            onPressed: _page > 0 ? () {
+                              setState(() {
+                                _page = 0;
+                              });
+                            } : null,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left, size: 20),
+                            onPressed: _page > 0 ? () {
+                              setState(() {
+                                _page--;
+                              });
+                            } : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: accentBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_left),
-                              onPressed: _page > 0 ? () {
-                                setState(() {
-                                  _page--;
-                                });
-                              } : null,
-                            ),
-                            Text(
+                            child: Text(
                               '${_page + 1} / $totalPages',
-                              style: const TextStyle(fontSize: 14),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right),
-                              onPressed: _page < totalPages - 1 ? () {
-                                setState(() {
-                                  _page++;
-                                });
-                              } : null,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right, size: 20),
+                            onPressed: _page < totalPages - 1 ? () {
+                              setState(() {
+                                _page++;
+                              });
+                            } : null,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.last_page, size: 20),
+                            onPressed: _page < totalPages - 1 ? () {
+                              setState(() {
+                                _page = totalPages - 1;
+                              });
+                            } : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: borderColor),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.last_page),
-                              onPressed: _page < totalPages - 1 ? () {
-                                setState(() {
-                                  _page = totalPages - 1;
-                                });
-                              } : null,
-                            ),
-                            const SizedBox(width: 16),
-                            DropdownButton<int>(
+                            child: DropdownButton<int>(
                               value: _rowsPerPage,
                               items: _rowsPerPageOptions.map((value) {
                                 return DropdownMenuItem<int>(
                                   value: value,
-                                  child: Text('$value на стр.'),
+                                  child: Text('по $value', style: const TextStyle(fontSize: 13)),
                                 );
                               }).toList(),
                               onChanged: (newValue) {
@@ -1772,289 +1794,278 @@ Widget _getPriorContactIconWidget(String? priorContact) {
                                   });
                                 }
                               },
+                              underline: const SizedBox(),
+                              icon: const Icon(Icons.arrow_drop_down, size: 20),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 40), // чуть выше
-            child: FloatingActionButton(
-              onPressed: () => _navigateToAddStudent(),
-              backgroundColor: accentBlue,
-              child: const Icon(Icons.add, color: Colors.white, size: 32),
-              tooltip: 'Добавить студента',
-            ),
-          ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 60),
+        child: FloatingActionButton(
+          onPressed: () => _navigateToAddStudent(),
+          backgroundColor: accentBlue,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+          tooltip: 'Добавить студента',
+        ),
+      ),
     );
   }
 
   Widget _buildStudentCard(Student student) {
-  final documentsStatusOpt = _documentsStatusOptions.firstWhere(
-    (o) => o['value'] == student.documentsStatus?.toLowerCase(),
-    orElse: () => {'label': 'Нет заявл.', 'color': neutralGray, 'bgColor': neutralGrayBg},
-  );
-  final meetingStatusOpt = _meetingStatusOptions.firstWhere(
-    (o) => o['value'] == student.meetingStatus?.toLowerCase(),
-    orElse: () => {'label': 'Не был на сборе', 'color': errorRed, 'bgColor': errorRedBg},
-  );
-  final callStatusOpt = _callStatusOptions.firstWhere(
-    (o) => o['value'] == student.callStatus?.toLowerCase(),
-    orElse: () => {'label': 'Не дозвонились', 'color': errorRed, 'bgColor': errorRedBg},
-  );
-  final decisionStatusOpt = _decisionStatusOptions.firstWhere(
-    (o) => o['value'] == student.decisionStatus?.toLowerCase(),
-    orElse: () => {'label': 'Думает', 'color': neutralGray, 'bgColor': neutralGrayBg},
-  );
-  
-  final hasPriorContact = student.priorContact != null && student.priorContact!.isNotEmpty;
-  final contactType = _getContactTypeFromPrior(student.priorContact);
-  final isUrlContact = contactType == 'url';
-  final hasUrl = student.additionalContacts?.containsKey('url') == true &&
-                 student.additionalContacts!['url']!.isNotEmpty;
-  final canContact = !isUrlContact || hasUrl;
-  
-  return Card(
-    margin: const EdgeInsets.only(bottom: 12),
-    elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(0),
-      side: BorderSide(color: borderColor, width: 2),
-    ),
-    child: InkWell(
-      onTap: () => _navigateToStudentDetail(student),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Верхняя строка: имя и баллы
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    student.fullName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: accentBlue,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (student.totalScore != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getScoreColor(student.totalScore!).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+    final documentsLabel = _getDocumentsStatusLabel(student.documentsStatus);
+    final documentsColor = _getDocumentsStatusColor(student.documentsStatus);
+    
+    final meetingLabel = _getMeetingStatusLabel(student.meetingStatus);
+    final meetingColor = _getMeetingStatusColor(student.meetingStatus);
+    
+    final callLabel = _getCallStatusLabel(student.callStatus);
+    final callColor = _getCallStatusColor(student.callStatus);
+    
+    final decisionLabel = _getDecisionStatusLabel(student.decisionStatus);
+    final decisionColor = _getDecisionStatusColor(student.decisionStatus);
+    
+    final hasPriorContact = student.priorContact != null && student.priorContact!.isNotEmpty;
+    final contactType = _getContactTypeFromPrior(student.priorContact);
+    final isUrlContact = contactType == 'url';
+    final hasUrl = student.additionalContacts?.containsKey('url') == true &&
+                   student.additionalContacts!['url']!.isNotEmpty;
+    final canContact = !isUrlContact || hasUrl;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: borderColor, width: 1),
+      ),
+      child: InkWell(
+        onTap: () => _navigateToStudentDetail(student),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Верхняя строка: ФИО и баллы
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
                     child: Text(
-                      '${student.totalScore}',
-                      style: TextStyle(
-                        color: _getScoreColor(student.totalScore!),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                      student.fullName,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: accentBlue,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (student.totalScore != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getScoreColor(student.totalScore!).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${student.totalScore}',
+                        style: TextStyle(
+                          color: _getScoreColor(student.totalScore!),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Блок статусов 2x2 и кнопки справа
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Статусы 2x2
-                Column(
+                ],
+              ),
+              
+              const SizedBox(height: 10),
+              
+              // Статусы 2x2 и кнопки в одном ряду
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Статусы 2x2 - занимают 2/3 ширины
+                  Expanded(
+                    flex: 2,
+                    child: Column(
                       children: [
                         Row(
                           children: [
-                            _buildRoundStatusChip(label: documentsStatusOpt['label'], color: documentsStatusOpt['color']),
-                            _buildRoundStatusChip(label: meetingStatusOpt['label'], color: meetingStatusOpt['color']),
+                            Expanded(child: _buildStatusChip(label: documentsLabel, color: documentsColor)),
+                            const SizedBox(width: 6),
+                            Expanded(child: _buildStatusChip(label: meetingLabel, color: meetingColor)),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
-                            _buildRoundStatusChip(label: callStatusOpt['label'], color: callStatusOpt['color']),
-                            _buildRoundStatusChip(label: decisionStatusOpt['label'], color: decisionStatusOpt['color']),
+                            Expanded(child: _buildStatusChip(label: callLabel, color: callColor)),
+                            const SizedBox(width: 6),
+                            Expanded(child: _buildStatusChip(label: decisionLabel, color: decisionColor)),
                           ],
                         ),
                       ],
                     ),
-                // Кнопки справа
-                const SizedBox(width: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (hasPriorContact && canContact)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 25),
-                        child: IconButton(
-                          icon: _getPriorContactIconWidget(student.priorContact),
-                          onPressed: () {
-                            switch (contactType) {
-                              case 'telegram':
-                                final telegram = student.additionalContacts?['telegram'] ?? student.phone;
-                                ContactService.openTelegram(telegram, student.fullName);
-                                break;
-                              case 'sms':
-                                ContactService.sendSms(student.phone);
-                                break;
-                              case 'call':
-                                ContactService.makeCall(student.phone);
-                                break;
-                              case 'url':
-                            final url = student.additionalContacts?['url'];
-                            if (url != null && url.isNotEmpty) {
-                              ContactService.openUrl(url);
-                            } else {
-                              _showErrorSnackbar('Ссылка не указана');
-                            }
-                            break;
-                        }
-                      },
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
-                ),
-              )
-            else
-              const SizedBox(width: 60, height: 48),
-                      Align(
-                      alignment: Alignment.centerRight,
-                      child: PopupMenuButton<String>(
-                        icon: Container(
-                          width: 10,
-                          height: 40,
-                          alignment: Alignment.center,
-                          child: Image.asset(
+                  ),
+                  
+                  const SizedBox(width: 10),
+                  
+                  // Кнопка контакта и меню - занимают 1/3 ширины
+                  Expanded(
+                    flex: 1,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (hasPriorContact && canContact)
+                          GestureDetector(
+                            onTap: () {
+                              switch (contactType) {
+                                case 'telegram':
+                                  final telegram = student.additionalContacts?['telegram'] ?? student.phone;
+                                  ContactService.openTelegram(telegram, student.fullName);
+                                  break;
+                                case 'sms':
+                                  ContactService.sendSms(student.phone);
+                                  break;
+                                case 'call':
+                                  ContactService.makeCall(student.phone);
+                                  break;
+                                case 'url':
+                                  final url = student.additionalContacts?['url'];
+                                  if (url != null && url.isNotEmpty) {
+                                    ContactService.openUrl(url);
+                                  } else {
+                                    _showErrorSnackbar('Ссылка не указана');
+                                  }
+                                  break;
+                              }
+                            },
+                            child: _getPriorContactIconWidget(student.priorContact),
+                          ),
+                        PopupMenuButton<String>(
+                          icon: Image.asset(
                             'assets/icons/threepoints.png',
-                            height: 40,
-                            width: 10,
+                            height: 24,
+                            width: 24,
                             errorBuilder: (context, error, stackTrace) => 
-                                const Icon(Icons.more_vert, size: 24),
+                                const Icon(Icons.more_vert, size: 20),
                           ),
-                        ),
-                        offset: const Offset(40, 80),
-                      onSelected: (value) => _handleContactAction(value, student),
-                      itemBuilder: (context) {
-                        final hasTelegram = student.additionalContacts?.containsKey('telegram') == true &&
-                                            student.additionalContacts!['telegram']!.isNotEmpty;
-                        final hasUrlInAdditional = student.additionalContacts?.containsKey('url') == true &&
-                                                    student.additionalContacts!['url']!.isNotEmpty;
-                        
-                        return [
-                          const PopupMenuItem(
-                            value: 'call',
-                            child: Row(
-                              children: [
-                                Icon(Icons.phone, color: Colors.green, size: 20),
-                                SizedBox(width: 12),
-                                Text('Позвонить'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'sms',
-                            child: Row(
-                              children: [
-                                Icon(Icons.sms, color: Colors.blue, size: 20),
-                                SizedBox(width: 12),
-                                Text('SMS'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'telegram',
-                            child: Row(
-                              children: [
-                                Icon(Icons.telegram, color: const Color(0xFF26A5E4), size: 20),
-                                const SizedBox(width: 12),
-                                Text(hasTelegram ? 'Telegram (из доп. контактов)' : 'Telegram'),
-                              ],
-                            ),
-                          ),
-                          if (hasUrlInAdditional)
-                            const PopupMenuItem(
-                              value: 'url',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.link, color: Colors.purple, size: 20),
-                                  SizedBox(width: 12),
-                                  Text('Открыть ссылку'),
-                                ],
+                          offset: const Offset(0, 40),
+                          onSelected: (value) => _handleContactAction(value, student),
+                          itemBuilder: (context) {
+                            final hasTelegram = student.additionalContacts?.containsKey('telegram') == true &&
+                                                student.additionalContacts!['telegram']!.isNotEmpty;
+                            final hasUrlInAdditional = student.additionalContacts?.containsKey('url') == true &&
+                                                        student.additionalContacts!['url']!.isNotEmpty;
+                            
+                            return [
+                              const PopupMenuItem(
+                                value: 'call',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.phone, color: Colors.green, size: 18),
+                                    SizedBox(width: 10),
+                                    Text('Позвонить'),
+                                  ],
+                                ),
                               ),
-                            ),
-                          const PopupMenuDivider(),
-                          const PopupMenuItem(
-                            value: 'add_contact',
-                            child: Row(
-                              children: [
-                                Icon(Icons.contact_page, color: Colors.orange, size: 20),
-                                SizedBox(width: 12),
-                                Text('В контакты'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.delete, color: Colors.red, size: 20),
-                                const SizedBox(width: 12),
-                                const Text('Удалить'),
-                              ],
-                            ),
-                          ),
-                        ];
-                      },
+                              const PopupMenuItem(
+                                value: 'sms',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.sms, color: Colors.blue, size: 18),
+                                    SizedBox(width: 10),
+                                    Text('SMS'),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'telegram',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.telegram, color: const Color(0xFF26A5E4), size: 18),
+                                    const SizedBox(width: 10),
+                                    Text(hasTelegram ? 'Telegram (из доп. контактов)' : 'Telegram'),
+                                  ],
+                                ),
+                              ),
+                              if (hasUrlInAdditional)
+                                const PopupMenuItem(
+                                  value: 'url',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.link, color: Colors.purple, size: 18),
+                                      SizedBox(width: 10),
+                                      Text('Открыть ссылку'),
+                                    ],
+                                  ),
+                                ),
+                              const PopupMenuDivider(),
+                              const PopupMenuItem(
+                                value: 'add_contact',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.contact_page, color: Colors.orange, size: 18),
+                                    SizedBox(width: 10),
+                                    Text('В контакты'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuDivider(),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.delete, color: Colors.red, size: 18),
+                                    const SizedBox(width: 10),
+                                    const Text('Удалить'),
+                                  ],
+                                ),
+                              ),
+                            ];
+                          },
+                        ),
+                      ],
                     ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-// Круглые статусы (как на DetailPage)
-Widget _buildRoundStatusChip({required String label, required Color color}) {
-  return SizedBox(
-    width: 100, 
-    height: 30,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+  Widget _buildStatusChip({required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color, width: 0.5),
       ),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
         ),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
-    ),
-  );
-}
+    );
+  }
+
   void _handleContactAction(String value, Student student) {
     switch (value) {
       case 'call':
@@ -2103,34 +2114,10 @@ Widget _buildRoundStatusChip({required String label, required Color color}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddStudentPage(onAdd: _addStudent),
+        builder: (context) => AddStudentPage(
+          onSuccess: _refreshAllData, 
+        ),
       ),
-    ).then((_) {
-      _refreshAllData();
-    });
-  }
-
-  Future<void> _addStudent(Map<String, dynamic> studentData) async {
-    try {
-      setState(() => _isLoading = true);
-      
-      final createdStudent = await _studentService.createStudent(studentData);
-      setState(() {
-        students.add(createdStudent);
-        _applyFiltersAndSort();
-        _isLoading = false;
-      });
-      
-      if (mounted) {
-        Navigator.pop(context);
-        _showSuccessSnackbar('Студент добавлен');
-        await _refreshAllData();
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        _showErrorSnackbar('Ошибка добавления студента: $e');
-      }
-    }
+    );
   }
 }

@@ -1,4 +1,5 @@
-// services/student_service.dart
+// services/student_service.dart - ИСПРАВЛЕННАЯ ВЕРСИЯ
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/student.dart';
@@ -6,6 +7,7 @@ import '../models/communication.dart';
 import '../models/student_application.dart';
 import '../models/group_statistics.dart';
 import 'auth_service.dart';
+import 'dart:io'; 
 
 class StudentService {
   static const String BASE_URL = 'http://158.160.67.3:8000';
@@ -20,6 +22,9 @@ class StudentService {
     
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
+      print('🔑 Заголовок Authorization: Bearer ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+    } else {
+      print('⚠️ Токен отсутствует');
     }
     
     return headers;
@@ -32,7 +37,6 @@ class StudentService {
 
   // ========== ПАРСЕР ==========
 
-  /// Запуск парсера для обновления данных
   Future<Map<String, dynamic>> runParser() async {
     try {
       final url = Uri.parse('$BASE_URL/api/parser/run');
@@ -46,7 +50,6 @@ class StudentService {
       ).timeout(const Duration(seconds: 60));
 
       print('📊 Статус парсера: ${response.statusCode}');
-      print('📝 Ответ парсера: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -93,15 +96,11 @@ class StudentService {
       final headers = await _getHeaders();
 
       print('🔄 Запрос студентов: $url');
-      print('🔑 Заголовки: Authorization: ${headers['Authorization']}');
 
       final response = await http.get(
         url,
         headers: headers,
       ).timeout(const Duration(seconds: 30));
-
-      print('📊 Статус: ${response.statusCode}');
-      print('📝 Ответ: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -153,7 +152,6 @@ class StudentService {
     }
   }
 
-  // Получить все заявления студента
   Future<List<StudentApplication>> getStudentApplications(int studentId) async {
     try {
       final url = await _buildUrl('/api/students/$studentId/applications');
@@ -183,7 +181,6 @@ class StudentService {
     }
   }
 
-  // Получить конкурсную информацию для конкретной специальности (правильный эндпоинт)
   Future<Map<String, dynamic>> getStudentCompetitiveInfoForSpeciality(
     int studentId, 
     int specialityId
@@ -215,7 +212,6 @@ class StudentService {
     }
   }
 
-  // Получить общую конкурсную информацию (может не работать, если нет основной специальности)
   Future<Map<String, dynamic>> getStudentCompetitiveInfo(int studentId) async {
     try {
       final url = await _buildUrl('/api/students/$studentId/competitive-info');
@@ -256,16 +252,12 @@ class StudentService {
       final headers = await _getHeaders();
       
       print('🔄 Создание студента: $url');
-      print('📦 Данные: $studentData');
 
       final response = await http.post(
         url,
         headers: headers,
         body: json.encode(studentData),
       ).timeout(const Duration(seconds: 30));
-
-      print('📊 Статус: ${response.statusCode}');
-      print('📝 Ответ: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -609,79 +601,120 @@ class StudentService {
       return [];
     }
   }
-  // Добавьте эти методы в student_service.dart
 
-// ========== АКТИВНЫЙ КОНТАКТ ==========
+  // ========== АКТИВНЫЙ КОНТАКТ (ИСПРАВЛЕНО: правильные эндпоинты как в веб-версии) ==========
 
-Future<Map<String, dynamic>?> getActiveContact() async {
-  try {
-    final url = await _buildUrl('/api/user/contact/get');
-    final headers = await _getHeaders();
-    
-    final response = await http.get(
-      url,
-      headers: headers,
-    ).timeout(const Duration(seconds: 30));
-    
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else if (response.statusCode == 404) {
+  /// Получить активный контакт пользователя
+  /// Эндпоинт: GET /api/user/contact/active/get (как в веб-версии)
+  Future<Map<String, dynamic>?> getActiveContact() async {
+    try {
+      final token = await _authService.getToken();
+      print('🔑 getActiveContact: token = ${token != null ? "есть" : "нет"}');
+      
+      if (token == null) {
+        print('❌ getActiveContact: Нет токена');
+        return null;
+      }
+      
+      // ИСПРАВЛЕНО: правильный эндпоинт /api/user/contact/active/get
+      final url = Uri.parse('$BASE_URL/api/user/contact/active/get');
+      final headers = await _getHeaders();
+      
+      print('🔄 getActiveContact: Запрос к $url');
+      
+      final response = await http.get(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 10));
+      
+      print('📊 getActiveContact: Статус ответа ${response.statusCode}');
+      print('📝 getActiveContact: Тело ответа ${response.body}');
+      
+      if (response.statusCode == 200 && response.body.isNotEmpty && response.body != 'null') {
+        final data = json.decode(response.body);
+        print('✅ getActiveContact: Получены данные: $data');
+        
+        if (data != null && data['contact_type'] != null && data['contact_value'] != null) {
+          return {
+            'contact_type': data['contact_type'],
+            'contact_value': data['contact_value'],
+          };
+        }
+      } else if (response.statusCode == 404) {
+        print('⚠️ getActiveContact: Активный контакт не найден (404)');
+      } else if (response.statusCode == 403) {
+        print('⚠️ getActiveContact: Доступ запрещен (403)');
+      }
+      
       return null;
-    } else {
+    } catch (e) {
+      print('❌ getActiveContact: Ошибка $e');
       return null;
     }
-  } catch (e) {
-    print('❌ Ошибка получения активного контакта: $e');
-    return null;
   }
-}
 
-Future<Map<String, dynamic>> setActiveContact(String contactType, String contactValue) async {
-  try {
-    final url = await _buildUrl('/api/user/contact/set');
-    final headers = await _getHeaders();
-    
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: json.encode({
+  /// Установить активный контакт
+  /// Эндпоинт: POST /api/user/contact/active/set (как в веб-версии)
+  Future<Map<String, dynamic>> setActiveContact(String contactType, String contactValue) async {
+    try {
+      final url = Uri.parse('$BASE_URL/api/user/contact/active/set');
+      final headers = await _getHeaders();
+      
+      final body = {
         'contact_type': contactType,
         'contact_value': contactValue,
-      }),
-    ).timeout(const Duration(seconds: 30));
-    
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Ошибка установки активного контакта: ${response.statusCode}');
+      };
+      
+      print('🔄 setActiveContact: Запрос к $url');
+      print('📦 Тело запроса: $body');
+      
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 30));
+      
+      print('📊 setActiveContact: Статус ответа ${response.statusCode}');
+      print('📝 setActiveContact: Тело ответа ${response.body}');
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Ошибка установки активного контакта: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Ошибка установки активного контакта: $e');
+      throw Exception('Не удалось установить активный контакт: $e');
     }
-  } catch (e) {
-    print('❌ Ошибка установки активного контакта: $e');
-    throw Exception('Не удалось установить активный контакт: $e');
   }
-}
 
-Future<void> deleteActiveContact() async {
-  try {
-    final url = await _buildUrl('/api/user/contact/delete');
-    final headers = await _getHeaders();
-    
-    final response = await http.delete(
-      url,
-      headers: headers,
-    ).timeout(const Duration(seconds: 30));
-    
-    if (response.statusCode != 200) {
-      throw Exception('Ошибка удаления активного контакта: ${response.statusCode}');
+  /// Удалить активный контакт
+  /// Эндпоинт: DELETE /api/user/contact/active/delete (как в веб-версии)
+  Future<void> deleteActiveContact() async {
+    try {
+      final url = Uri.parse('$BASE_URL/api/user/contact/active/delete');
+      final headers = await _getHeaders();
+      
+      print('🔄 deleteActiveContact: Запрос к $url');
+      
+      final response = await http.delete(
+        url,
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+      
+      print('📊 deleteActiveContact: Статус ответа ${response.statusCode}');
+      
+      if (response.statusCode != 200) {
+        throw Exception('Ошибка удаления активного контакта: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Ошибка удаления активного контакта: $e');
+      throw Exception('Не удалось удалить активный контакт: $e');
     }
-  } catch (e) {
-    print('❌ Ошибка удаления активного контакта: $e');
-    throw Exception('Не удалось удалить активный контакт: $e');
   }
-}
+
   // ========== СТАТИСТИКА ГРУПП ==========
 
-  /// Получить статистику по всем группам (бюджет, платное, целевое)
   Future<List<GroupStatistics>> getGroupStatistics() async {
     try {
       final url = await _buildUrl('/api/students/statistics/groups');
@@ -707,6 +740,55 @@ Future<void> deleteActiveContact() async {
     } catch (e) {
       print('❌ Ошибка при загрузке статистики групп: $e');
       return [];
+    }
+  }
+
+  // ========== EXCEL ИМПОРТ ==========
+
+  Future<Map<String, dynamic>> importExcel(File file, String strategy, [List<int>? replaceIds]) async {
+    try {
+      final url = Uri.parse('$BASE_URL/api/excel-import/upload');
+      final headers = await _getHeaders();
+      
+      print('🔄 Импорт Excel файла: ${file.path}');
+      print('📊 Стратегия: $strategy');
+      if (replaceIds != null && replaceIds.isNotEmpty) {
+        print('🆔 ID для замены: $replaceIds');
+      }
+      
+      final request = http.MultipartRequest('POST', url);
+      request.headers.addAll(headers);
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      request.fields['duplicate_strategy'] = strategy;
+      if (replaceIds != null && replaceIds.isNotEmpty) {
+        request.fields['replace_ids'] = json.encode(replaceIds);
+      }
+      
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      
+      print('📊 Статус ответа: ${response.statusCode}');
+      print('📝 Ответ: $responseBody');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(responseBody);
+        return data;
+      } else if (response.statusCode == 400) {
+        try {
+          final error = json.decode(responseBody);
+          throw Exception(error['detail'] ?? 'Ошибка валидации данных');
+        } catch (e) {
+          throw Exception('Ошибка валидации: $responseBody');
+        }
+      } else if (response.statusCode == 401) {
+        await _authService.clearAuthData();
+        throw Exception('Сессия истекла. Войдите снова.');
+      } else {
+        throw Exception('Ошибка сервера: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Ошибка импорта Excel: $e');
+      throw Exception('Не удалось импортировать файл: $e');
     }
   }
 }
